@@ -4,7 +4,9 @@ on: push
 
 jobs:
   pdfLaTeX:
-    runs-on: texlive/texlive
+    runs-on: ubuntu-latest
+    container:
+      image: texlive/texlive
     steps:
     - uses: actions/checkout@v3
     - name: compile
