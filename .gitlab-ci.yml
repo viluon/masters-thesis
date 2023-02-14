@@ -1,7 +1,7 @@
 image: texlive/texlive
 
 LuaLaTeX:
-    script: 
+    script:
         - sed 's/\[czech/\[slovak/' ctufit-thesis.tex > ctufit-thesis-sk.tex
         - sed 's/\[czech/\[english/' ctufit-thesis.tex > ctufit-thesis-en.tex
         - latexmk -pdflua ctufit-thesis.tex
@@ -9,7 +9,7 @@ LuaLaTeX:
         - latexmk -pdflua ctufit-thesis-sk.tex
 
 XeLaTeX:
-    script: 
+    script:
         - sed 's/\[czech/\[slovak/' ctufit-thesis.tex > ctufit-thesis-sk.tex
         - sed 's/\[czech/\[english/' ctufit-thesis.tex > ctufit-thesis-en.tex
         - latexmk -pdfxe ctufit-thesis.tex
@@ -17,7 +17,7 @@ XeLaTeX:
         - latexmk -pdfxe ctufit-thesis-sk.tex
 
 pdfLaTeX:
-    script: 
+    script:
         - sed 's/\[czech/\[slovak/' ctufit-thesis.tex > ctufit-thesis-sk.tex
         - sed 's/\[czech/\[english/' ctufit-thesis.tex > ctufit-thesis-en.tex
         - latexmk -pdf ctufit-thesis.tex
@@ -30,7 +30,7 @@ pdfLaTeX:
             - ctufit-thesis-sk.pdf
 
 LaTeX:
-    script: 
+    script:
         - DEBIAN_FRONTEND=noninteractive apt-get update
         - DEBIAN_FRONTEND=noninteractive apt-get -yq install ghostscript
         - sed 's/\[czech/\[slovak/' ctufit-thesis.tex > ctufit-thesis-sk.tex
