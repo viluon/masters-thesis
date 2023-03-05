@@ -10,168 +10,74 @@
 % Use that any way it pleases you (or comment it out). It can contain, for
 % instance, a summary of the chapter. Or, there can be a quotation.
 \begin{chapterabstract}
-	\lipsum[1]
+	TODO: abstract
 \end{chapterabstract}
 
-\lipsum[2][1-4]{} [1]
+Programming Protocol-independent Packet Processors (P4) is a domain-specific
+language for programming network switches. Since its introduction in
+2014\cite{p4original}, it became widely popular in software-defined networking
+(SDF).
 
-\lipsum[4]
 
-%---------------------------------------------------------------
-\section{Ut enim ad minim veniam}
-%---------------------------------------------------------------
 
-\lipsum[6-7]
 
-\begin{figure}
-\centering
-%\includegraphics[scale=0.4]{pic/index}
-\resizebox{\textwidth}{!}{
-\begin{tikzpicture}[level/.style={sibling distance=60mm/#1}]
-\node [circle,draw] (z){$n$}
-  child {node [circle,draw] (a) {$\frac{n}{2}$}
-    child {node [circle,draw] (b) {$\frac{n}{2^2}$}
-      child {node {$\vdots$}
-        child {node [circle,draw] (d) {$\frac{n}{2^k}$}}
-        child {node [circle,draw] (e) {$\frac{n}{2^k}$}}
-      }
-      child {node {$\vdots$}}
-    }
-    child {node [circle,draw] (g) {$\frac{n}{2^2}$}
-      child {node {$\vdots$}}
-      child {node {$\vdots$}}
-    }
-  }
-  child {node [circle,draw] (j) {$\frac{n}{2}$}
-    child {node [circle,draw] (k) {$\frac{n}{2^2}$}
-      child {node {$\vdots$}}
-      child {node {$\vdots$}}
-    }
-  child {node [circle,draw] (l) {$\frac{n}{2^2}$}
-    child {node {$\vdots$}}
-    child {node (c){$\vdots$}
-      child {node [circle,draw] (o) {$\frac{n}{2^k}$}}
-      child {node [circle,draw] (p) {$\frac{n}{2^k}$}
-        child [grow=right] {node (q) {$=$} edge from parent[draw=none]
-          child [grow=right] {node (q) {$O_{k = \lg n}(n)$} edge from parent[draw=none]
-            child [grow=up] {node (r) {$\vdots$} edge from parent[draw=none]
-              child [grow=up] {node (s) {$O_2(n)$} edge from parent[draw=none]
-                child [grow=up] {node (t) {$O_1(n)$} edge from parent[draw=none]
-                  child [grow=up] {node (u) {$O_0(n)$} edge from parent[draw=none]}
-                }
-              }
-            }
-            child [grow=down] {node (v) {$O(n \cdot \lg n)$}edge from parent[draw=none]}
-          }
-        }
-      }
-    }
-  }
-};
-\path (a) -- (j) node [midway] {+};
-\path (b) -- (g) node [midway] {+};
-\path (k) -- (l) node [midway] {+};
-\path (k) -- (g) node [midway] {+};
-\path (d) -- (e) node [midway] {+};
-\path (o) -- (p) node [midway] {+};
-\path (o) -- (e) node (x) [midway] {$\cdots$}
-  child [grow=down] {
-    node (y) {$O\left(\displaystyle\sum_{i = 0}^k 2^i \cdot \frac{n}{2^i}\right)$}
-    edge from parent[draw=none]
-  };
-\path (q) -- (r) node [midway] {+};
-\path (s) -- (r) node [midway] {+};
-\path (s) -- (t) node [midway] {+};
-\path (s) -- (l) node [midway] {=};
-\path (t) -- (u) node [midway] {+};
-\path (z) -- (u) node [midway] {=};
-\path (j) -- (t) node [midway] {=};
-\path (y) -- (x) node [midway] {$\Downarrow$};
-\path (v) -- (y)
-  node (w) [midway] {$O\left(\displaystyle\sum_{i = 0}^k n\right) = O(k \cdot n)$};
-\path (q) -- (v) node [midway] {=};
-\path (e) -- (x) node [midway] {+};
-\path (o) -- (x) node [midway] {+};
-\path (y) -- (w) node [midway] {$=$};
-\path (v) -- (w) node [midway] {$\Leftrightarrow$};
-\path (r) -- (c) node [midway] {$\cdots$};
-\end{tikzpicture}}
-\caption{~Lorem ipsum dolor sit amet}\label{img:index}
-\end{figure}
+Over the last decade, \textit{language servers} became a popular architecture
+for providing semantically informed editing features in integrated developer
+environments and lightweight source code editors alike. Although examples of
+language server -like tools predate their standardization, a major milestone in
+their development was the introduction of the Language Server Protocol (LSP).
+% TODO: make that into an actual acronym
+The support of (LSP) in Visual Studio Code seeded an ever-growing environment of
+cross-platform tooling for a variety of programming, configuration,
+specification, and markup languages. Their success can be attributed in part to
+the investment by Microsoft. However, (LSP) as a standard has much technical
+merit.
+
+Before the introduction of a common communication interface between
+language-specific tooling and a given source code editor, implementors had to
+create and maintain extensions for any number of different environments, often
+in different programming languages. For example, take an editor plugin providing
+smart completion and "go to definition" features for the Python programming
+language. Suppose the author aims to extend Vim, Emacs, and IntelliJ IDEA. They
+would therefore have to reimplement the given functionality in vimscript, Emacs
+Lisp, and a JVM-based language. Even though recent innovations in classical text
+editors(Neovim) have partly moved away from using their own (DSL)'s, the author
+is still burdened with three times the implementation work, as every development
+environment (API) is different.
+
+The solution to this problem is to split editor extensions according to the
+client-server model. The major implementation work for domain-specific
+functionality resides on the server side, whereas the client is only a
+relatively thin wrapper that adapts a given editor's API. Implementors can build
+many thin clients for different development environments that all connect to the
+same \textit{language server}. (LSP)'s raison d'être is support of this model in
+Visual Studio Code.
+
+Codenvy, Microsoft, and Red Hat collaborated on standardizing the protocol to
+enable other tools % TODO: finish this
+% TODO: https://sdtimes.com/che/codenvy-microsoft-red-hat-collaborate-language-server-protocol/
+%       https://www.infoworld.com/article/3088698/microsoft-backed-langauge-server-protocol-strives-for-language-tools-interoperability.html
 
 %---------------------------------------------------------------
-\section{Ut enim ad minim veniam}
+\section{Outline}
 %---------------------------------------------------------------
-
-\lipsum[2-4]
-
-%---------------------------------------------------------------
-\subsection{Ut enim ad minim veniam}
-%---------------------------------------------------------------
-
-Curabitur ligula sapien, pulvinar a vestibulum quis, facilisis vel sapien. Duis
-condimentum augue id magna semper rutrum. Aliquam ornare wisi eu metus. Fusce
-aliquam vestibulum ipsum. Vivamus ac leo pretium faucibus\ref{img:index}.
-
-\begin{itemize}
-    \item Ut enim ad minim veniam, quis nostrud
-    \item Ut enim ad minim
-    \item Ut enim ad minim veniam, quis
-    \begin{itemize}
-        \item Ut enim ad
-        \item Ut enim ad
-        \begin{itemize}
-            \item Ut enim
-            \item Ut enim
-            \begin{itemize}
-            \item Ut enim
-            \item Ut enim
-        \end{itemize}
-        \end{itemize}
-    \end{itemize}
-\end{itemize}
-
-\section{Class aptent taciti}
-
-\lipsum[2]
-
-\subsection{Class aptent taciti}
-
-\lipsum[6-7]
 
 \begin{enumerate}
-    \item Ut enim ad minim veniam, quis nostrud
-    \item Ut enim ad minim
-    \item Ut enim ad minim veniam, quis
-    \begin{enumerate}
-        \item Ut enim ad
-        \item Ut enim ad
-        \begin{enumerate}
-            \item Ut enim
-            \item Ut enim
-            \begin{enumerate}
-            \item Ut enim
-            \item Ut enim
-        \end{enumerate}
-        \end{enumerate}
-    \end{enumerate}
+  \item (intro) P4 information
+  \item (intro) language servers, VS Code (screenshots, c++?)
+  \item design: overview of the architecture, interfaces with the editor, what
+        needs to be implemented
+  \item subsections about problems that needed solving, but most should go into
+        the design part!
+  \item results, what it can do, open-source repository, performance metrics
+        (aim for interactivity)
+  \item conclusion, next steps
 \end{enumerate}
 
 
-%---------------------------------------------------------------
-\section{Ut enim ad minim veniam, quis nostrud}
-%---------------------------------------------------------------
+authorship: link to GitHub, detail which non-critical parts were implemented by
+a colleague
 
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Nulla non arcu lacinia neque faucibus
-fringilla. Vestibulum erat nulla, ullamcorper nec, rutrum non, nonummy ac, erat.
-Aliquam erat volutpat. Proin pede metus, vulputate nec, fermentum fringilla,
-vehicula vitae, justo.\footnote{Ut enim ad minim veniam, quis nostrud
-exercitation.} Etiam dictum tincidunt diam. In laoreet, magna id viverra
-tincidunt, sem odio bibendum justo, vel imperdiet sapien wisi sed libero. Nulla
-est. Maecenas fermentum, sem in pharetra pellentesque, velit turpis volutpat
-ante, in pharetra metus odio a lectus. Duis aute irure dolor in reprehenderit in
-voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 
 \begin{lstlisting}[caption={~Zbytečný kód},label=list:8-6,captionpos=t,float,abovecaptionskip=-\medskipamount,belowcaptionskip=\medskipamount,language=C]
     #include<stdio.h>
@@ -209,25 +115,6 @@ lectus id turpis. Suspendisse sagittis ultrices augue. In laoreet, magna id
 viverra tincidunt, sem odio bibendum justo, vel imperdiet sapien wisi sed
 libero. Sed ac dolor sit amet purus malesuada congue. \cite{Crochemore2002}
 
-Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-hymenaeos. Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae,
-sagittis id, malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non
-orci. Duis viverra diam non justo. Curabitur ligula sapien, pulvinar a
-vestibulum quis, facilisis vel sapien. Duis condimentum augue id magna semper
-rutrum. Aliquam ornare wisi eu metus. Fusce aliquam vestibulum ipsum. Vivamus ac
-leo pretium faucibus. \cite{Motwani2014}
-
-%---------------------------------------------------------------
-\subsection{Ut enim ad minim veniam, quis nostrud}
-%---------------------------------------------------------------
-
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Nulla non arcu lacinia neque faucibus
-fringilla. Vestibulum erat nulla, ullamcorper nec, rutrum non, nonummy ac, erat.
-Aliquam erat volutpat. Proin pede metus, vulputate nec, fermentum fringilla,
-vehicula vitae, justo. Etiam dictum tincidunt diam. In laoreet, magna id viverra
-tincidunt, sem odio bibendum justo. \cite{Sestakova2018}
-
 \begin{table}\centering
 \caption[Příklad tabulky]{~Zadávání matematiky}\label{tab:matematika}
 \begin{tabular}{l|l|c|c}
@@ -238,94 +125,18 @@ tincidunt, sem odio bibendum justo. \cite{Sestakova2018}
 \end{table}
 
 
-Nulla est. Maecenas fermentum, sem in pharetra pellentesque, velit turpis
-volutpat ante, in pharetra metus odio a lectus. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-Nullam feugiat, turpis at pulvinar vulputate, erat libero tristique tellus, nec
-bibendum odio risus sit amet ante. Aenean id metus id velit ullamcorper
-pulvinar.
-
-\subsubsection{Class aptent taciti}
-
-\begin{definition}[Optional label]
-Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-hymenaeos. Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae,
-sagittis id, malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non
-orci.
-\end{definition}
-
-\begin{example}
-Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-hymenaeos. Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae,
-sagittis id, malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non
-orci.
-\end{example}
-
-\begin{theorem}
-Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-hymenaeos. Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae,
-sagittis id, malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non
-orci.
-\end{theorem}
-
-\begin{proof}
-Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae, sagittis id,
-malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non orci.
-\end{proof}
-
-\begin{corollary}
-Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae, sagittis id,
-malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non orci.
-\end{corollary}
-
-\begin{proposition}
-Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae, sagittis id,
-malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non orci.
-\end{proposition}
-
-\begin{note}
-Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae, sagittis id,
-malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non orci.
-\end{note}
-
-\begin{remark}
-Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae, sagittis id,
-malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non orci.
-\end{remark}
-
-\begin{lemma}
-Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-hymenaeos. Fusce suscipit libero eget elit. Etiam dui sem, fermentum vitae,
-sagittis id, malesuada in, quam. Aliquam id dolor. Curabitur bibendum justo non
-orci.
-\end{lemma}
-
-\lipsum[1-2]
-
-\subsection{Class aptent taciti sociosqu}
-
-\lipsum[4-5]
-
 %---------------------------------------------------------------
-\chapter{Lorem ipsum}
+\chapter{The P4 Language}
 %---------------------------------------------------------------
 
 \begin{chapterabstract}
-	Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Curabitur sagittis
-	hendrerit ante. Class aptent taciti sociosqu ad litora torquent per conubia
-	nostra, per inceptos hymenaeos. Cras pede libero, dapibus nec, pretium sit
-	amet, tempor quis. Sed vel lectus. Donec odio tempus molestie, porttitor ut,
-	iaculis quis, sem. Cras pede libero, dapibus nec, pretium sit amet, tempor
-	quis. Sed vel lectus.
+	\dots in which we delve into the syntax and semantics of P4, explain its use
+	cases, and discuss the differences to conventional programming languages.
 \end{chapterabstract}
 
-Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Curabitur sagittis
-hendrerit ante. Class aptent taciti sociosqu ad litora torquent per conubia
-nostra, per inceptos hymenaeos. Cras pede libero, dapibus nec, pretium sit amet,
-tempor quis. Sed vel lectus. Donec odio tempus molestie, porttitor ut, iaculis
-quis, sem. Suspendisse sagittis ultrices augue. Donec ipsum massa, ullamcorper
-in, auctor et, scelerisque sed, est. In sem justo, commodo ut, suscipit at,
-pharetra vitae, orci. Pellentesque pretium lectus id turpis. \cite{Kopka2004}
+P4 is a high-level language for programming packet processors.
+
+
 
 \section{Donec odio tempus molestie}
 

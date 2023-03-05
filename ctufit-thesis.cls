@@ -65,13 +65,27 @@
 \RequirePackage{multicol}[2019/12/09] % summary page
 \RequirePackage{titlesec}[2019/10/16]
 
+% original colors
+%  \definecolor{decoration}{RGB}{0, 122, 195} %CTU blue
+%  \definecolor{heading}{RGB}{0, 122, 195}
+%  \definecolor{headbackgroundgray}{RGB}{199, 219, 241} %light blue
+%  \definecolor{backgroundgray}{RGB}{199, 219, 241} %CTU light blue
+%  \definecolor{headgray}{rgb}{0.50,0.50,0.51}
+%  \definecolor{enumgray}{RGB}{0, 122, 195} %CTU blue
+% original colors end
+
 % colors
- \definecolor{decoration}{RGB}{0, 122, 195} %CTU blue
- \definecolor{heading}{RGB}{0, 122, 195}
- \definecolor{headbackgroundgray}{RGB}{199, 219, 241} %light blue
- \definecolor{backgroundgray}{RGB}{199, 219, 241} %CTU light blue
+ \definecolor{decoration}{RGB}{23, 91, 176} % CTU blue (Pantone)
+ \definecolor{heading}{RGB}{23, 91, 176}
+ \definecolor{headbackgroundgray}{RGB}{188, 214, 246} % CTU light blue (pseudo-Pantone)
+ \definecolor{backgroundgray}{RGB}{188, 214, 246} % CTU light blue (pseudo-Pantone)
  \definecolor{headgray}{rgb}{0.50,0.50,0.51}
- \definecolor{enumgray}{RGB}{0, 122, 195} %CTU blue
+ \definecolor{enumgray}{RGB}{23, 91, 176} % CTU blue (Pantone)
+ % the light blue was derived from Pantone via the fourth tint
+ % from the right here: https://www.colorhexa.com/175bb0
+ % it's unclear how was the original light blue derived from
+ % the darker variant, however said fourth tint of the original blue
+ % is very close to the official light shade.
 % colors end
 
 \DeclareRobustCommand{\ctufittitle}[1]{
@@ -168,19 +182,19 @@
 \DeclareRobustCommand{\imprintpage}{
 	\clearpage
 	\thispagestyle{empty}
-	
+
 
 		~
 	\vfill
-	
+
 	{\small
 			\noindent \thectufituniversity \\
 		\noindent \thectufitfaculty \\
 	\noindent \textcopyright{} \thectufityear{} \thectufitauthorfull. \thectufitallrightsreservedlabel\\
 		\noindent \textit{\thectufitcopyrighttext}
-	
+
 	\vspace{1em}
-	
+
 	\noindent \thectufitcitationlabel: \thectufitauthorsurnames{} \thectufitauthorgivennames. \textit{\thectufittitle}. \thectufitthesistype. \thectufituniversity, \thectufitfaculty, \thectufityear.
    }
 }
@@ -251,10 +265,10 @@
 {}
 {}
 
-  
+
 % \titleformat{\subsection}
 %   {\frontsubsectionfont\color{heading}}{{{\color{black}\thesubsection}}}{1em}{}[\vskip -1em]
-  
+
 % \titleformat{\subsubsection}
 %   {\frontsubsubsectionfont\color{heading}}{{{\color{black}\thesubsubsection}}}{1em}{}[\vskip -1em]
 
@@ -327,7 +341,7 @@
   {{\frontchapterfont\begin{flushleft}{\color{heading}Abstract}\end{flushleft}}}%
   \bigskip
   \noindent\ignorespaces}
-  
+
 \newenvironment{declaration}{}
 
 % acknowledgment page
@@ -386,10 +400,10 @@
 %vzhled nadpisů sekcí
 \titleformat{\section}
   {\Large\bfseries\color{heading}}{\colorbox{headbackgroundgray}{{\color{black}\thesection}}}{1em}{}%[\vskip -1em]
-  
+
 \titleformat{\subsection}
   {\Large\bfseries\color{heading}}{{{\color{black}\thesubsection}}}{1em}{}%[\vskip -1em]
-  
+
 \titleformat{\subsubsection}
   {\large\bfseries\color{heading}}{{{\color{black}\thesubsubsection}}}{1em}{}%[\vskip -1em]
 }
@@ -398,7 +412,7 @@
 %%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%
-% APPENDIX SETTINGS 
+% APPENDIX SETTINGS
 % no need to modify this part
 %%%%%%%%%%%%%%%%%%%%
 \DeclareRobustCommand{\appendixinit}{
