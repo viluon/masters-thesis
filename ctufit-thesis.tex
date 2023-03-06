@@ -96,11 +96,17 @@ sagittis ultrices augue.}
 \usepackage{dirtree}
 \usepackage{lipsum,tikz}
 \usepackage{csquotes}
-% \usepackage[acronym,nonumberlist,toc,numberedsection=autolabel]{glossaries}
+\usepackage[acronym,nonumberlist,toc,numberedsection=autolabel]{glossaries}
+\makeglossaries
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
 \usepackage[style=iso-numeric]{biblatex}
 \addbibresource{text/bib-database.bib}
+\usepackage{hyperref}
 \usepackage{listings} % typesetting of sources
 % \usepackage{minted} % typesetting of sources
+
+% TODO: this is only for correct typesetting of todonotes
+\setlength{\marginparwidth}{3.3cm}
 
 %theorems, definitions, etc.
 \theoremstyle{plain}
@@ -233,19 +239,9 @@ pharetra vitae, orci. Pellentesque pretium lectus id turpis.
 % OR REMOVE ENTIRELY
 % List the abbreviations in lexicography order.
 %%%%%%%%%%%%%%%%%%%
-\chapter{Seznam zkratek}
+\chapter{Abbreviations}
 
-\begin{tabular}{rl}
-DFA & Deterministic Finite Automaton\\
-FA & Finite Automaton\\
-LPS & Labelled Prüfer Sequence\\
-NFA & Nondeterministic Finite Automaton\\
-NPS & Numbered Prüfer Sequence\\
-XML & Extensible Markup Language\\
-XPath & XML Path Language\\
-XSLT & eXtensible Stylesheet Language Transformations\\
-W3C & World Wide Web Consortium
-\end{tabular}
+\printglossary[type=\acronymtype]
 %%%%%%%%%%%%%%%%%%%
 % ABBREVIATIONS END
 %%%%%%%%%%%%%%%%%%%
