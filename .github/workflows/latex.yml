@@ -12,7 +12,7 @@ jobs:
     - name: compile
       run: latexmk -pdf ctufit-thesis.tex
     - name: release
-      if: ${{ github.ref == 'refs/heads/main' }}
+      if: ${{ github.ref == 'refs/heads/master' }}
       uses: marvinpinto/action-automatic-releases@v1.2.1
       with:
         # GitHub secret token
