@@ -12,6 +12,9 @@
 \newacronym{sdn}{SDN}{software-defined networking}
 \newacronym{api}{API}{application programming interface}
 \newacronym{onf}{ONF}{Open Networking Foundation}
+\newacronym{dsl}{DSL}{domain-specific language}
+\newacronym{asic}{ASIC}{application-specific integrated circuit}
+\newacronym{fpga}{FPGA}{field-programmable gate array}
 \newcommand{\pfs}{\texorpdfstring{{P}4\textsubscript{16}}{P4 16} }
 
 % The following environment can be used as a mini-introduction for a chapter.
@@ -45,9 +48,9 @@ keywords.\cite{p416:v1:spec:comparison}}. The redesigned language is known as
 \pfs\cite{p416:v123:spec} and its specification has since received more
 incremental updates.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------%
 \section*{A Growing Community}
-%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------%
 
 \acrshort{p4} gave rise to a varied ecosystem of commercial offerings of both
 hardware and software. It spawned several academic projects that investigated
@@ -63,16 +66,16 @@ or directly compiling them.} compiler frontend and mid\-end, along with several
 backends:
 
 \begin{description}
-  \item[p4c-bm2-ss] Targets a sample software switch for testing purposes.
-  \item[p4c-dpdk] Targets the DPDK software switch (SWX) pipeline\cite{dpdkDPDKRelease}.
-  \item[p4c-ebpf] Generates C code which can be compiled to eBPF
-    and then loaded in the Linux kernel.
-  \item[p4test] A source-to-source P4 translator for testing, learning compiler
-    internals and debugging.
-  \item[p4c-graphs] Generates visual representations of P4 programs.
-  \item[p4c-ubpf] Generates eBPF code that runs in user-space.
-  \item[p4tools] A platform for P4 test utilities, includes a test-case
-    generator for P4 programs.
+	\item[p4c-bm2-ss] Targets a sample software switch for testing purposes.
+	\item[p4c-dpdk] Targets the DPDK software switch (SWX) pipeline\cite{dpdkDPDKRelease}.
+	\item[p4c-ebpf] Generates C code which can be compiled to eBPF
+		and then loaded in the Linux kernel.
+	\item[p4test] A source-to-source P4 translator for testing, learning compiler
+		internals and debugging.
+	\item[p4c-graphs] Generates visual representations of P4 programs.
+	\item[p4c-ubpf] Generates eBPF code that runs in user-space.
+	\item[p4tools] A platform for P4 test utilities, includes a test-case
+		generator for P4 programs.
 \end{description}
 
 All of these components are open source. The frontend and mid\-end of the
@@ -87,15 +90,18 @@ program\cite{p4insight}, or, as evidenced by the open backends, are parts of the
 compiler proper.\todo{make the case for real-time feedback and better error
 reporting}
 
+%-----------------------------------------%
+\section*{Language Servers to the Rescue}
+%-----------------------------------------%
+
 Over the last decade\todo{poor opening? This should be in another section too},
-\emph{language servers} became a popular architecture for providing semantically
-informed editing features in integrated developer environments and lightweight
-source code editors alike. Although examples of language server -like tools
-predate their standardization, a major milestone in their development was the
-introduction of the \acrfull{lsp}.
-% TODO: make that into an actual acronym
-The support of \acrshort{lsp} in Visual Studio Code seeded an ever-growing
-environment of cross-platform tooling for a variety of programming,
+\emph{language servers} became a popular architecture\cite{barros2022editing}
+for providing semantically informed editing features in integrated developer
+environments and lightweight source code editors alike. Although examples of
+language server -like tools predate their standardization\cite{bour2018merlin},
+a major milestone in their development was the introduction of the
+\acrfull{lsp}. The support of \acrshort{lsp} in Visual Studio Code seeded an
+ever-growing environment of cross-platform tooling for a variety of programming,
 configuration, specification, and markup languages. Their success can be
 attributed in part to the investment by Microsoft. However, \acrshort{lsp} as a
 standard has much technical merit.
@@ -103,14 +109,15 @@ standard has much technical merit.
 Before the introduction of a common communication interface between
 language-specific tooling and a given source code editor, implementors had to
 create and maintain extensions for any number of different environments, often
-in different programming languages. For example, take an editor plugin providing
+in several programming languages. For example, take an editor plugin providing
 smart completion and "go to definition" features for the Python programming
 language. Suppose the author aims to extend Vim, Emacs, and IntelliJ IDEA. They
 would therefore have to reimplement the given functionality in vimscript, Emacs
 Lisp, and a JVM-based language. Even though recent innovations in classical text
-editors(Neovim) have partly moved away from using their own (DSL)'s, the author
-is still burdened with three times the implementation work, as every development
-environment \acrshort{api} is different.
+editors\todo{Neovim} have partly moved away from using their own
+\acrshort{dsl}'s, the author is still burdened with three times the
+implementation work, as every development environment \acrshort{api} is
+different.
 
 The solution to this problem is to split editor extensions according to the
 client-server model. The major implementation work for domain-specific
@@ -120,41 +127,40 @@ many thin clients for different development environments that all connect to the
 same \emph{language server}. \acrshort{lsp}'s raison d'être is support of this
 model in Visual Studio Code.
 
-Codenvy, Microsoft, and Red Hat collaborated on standardizing the protocol to
-enable other tools to benefit from a shared tooling protocol. % TODO: finish this
-% TODO: https://sdtimes.com/che/codenvy-microsoft-red-hat-collaborate-language-server-protocol/
-%       https://www.infoworld.com/article/3088698/microsoft-backed-langauge-server-protocol-strives-for-language-tools-interoperability.html
+Coden\-vy, Microsoft, and Red Hat collaborated on standardizing the protocol to
+enable other tools to benefit from shared
+tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
 
-%---------------------------------------------------------------
+%-------------------%
 \section{Outline}
-%---------------------------------------------------------------
+%-------------------%
 
 \begin{enumerate}
-  \item (intro) P4 information
-  \item (intro) language servers, VS Code (screenshots, c++?)
-  \item design: overview of the architecture, interfaces with the editor, what
-        needs to be implemented
-  \item subsections about problems that needed solving, but most should go into
-        the design part!
-  \item results, what it can do, open-source repository, performance metrics
-        (aim for interactivity)
-  \item conclusion, next steps
+	\item (intro) P4 information
+	\item (intro) language servers, VS Code (screenshots, c++?)
+	\item design: overview of the architecture, interfaces with the editor, what
+		needs to be implemented
+	\item subsections about problems that needed solving, but most should go into
+		the design part!
+	\item results, what it can do, open-source repository, performance metrics
+		(aim for interactivity)
+	\item conclusion, next steps
 \end{enumerate}
 
 
-authorship: link to GitHub, detail which non-critical parts were implemented by
-a colleague
+\todo[inline]{authorship: link to GitHub, detail which non-critical parts were
+implemented by a colleague}
 
 
 \begin{lstlisting}[caption={~Zbytečný kód},label=list:8-6,captionpos=t,float,abovecaptionskip=-\medskipamount,belowcaptionskip=\medskipamount,language=C]
-    #include<stdio.h>
-    #include<iostream>
-    // A comment
-    int main(void)
-    {
-        printf("Hello World\n");
-        return 0;
-    }
+	#include<stdio.h>
+	#include<iostream>
+	// A comment
+	int main(void)
+	{
+		printf("Hello World\n");
+		return 0;
+	}
 \end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -175,19 +181,13 @@ a colleague
 % \end{minted}
 % \end{listing}
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Nullam feugiat, turpis at pulvinar vulputate, erat libero tristique tellus, nec
-bibendum odio risus sit amet ante. Aenean id metus id velit ullamcorper
-pulvinar. Fusce wisi. Integer lacinia. Aliquam id dolor. Pellentesque pretium
-lectus id turpis. Suspendisse sagittis ultrices augue. In laoreet, magna id
-viverra tincidunt, sem odio bibendum justo, vel imperdiet sapien wisi sed
-libero. Sed ac dolor sit amet purus malesuada congue. \cite{Crochemore2002}
 
 \begin{table}\centering
 \caption[Příklad tabulky]{~Zadávání matematiky}\label{tab:matematika}
 \begin{tabular}{l|l|c|c}
 	Typ		& Prostředí		& \LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
- 	Text		& \verb|math|		& \verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
- 	Displayed	& \verb|displaymath|	& \verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
+	Text		& \verb|math|		& \verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
+	Displayed	& \verb|displaymath|	& \verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
 \end{tabular}
 \end{table}
 
@@ -197,10 +197,104 @@ libero. Sed ac dolor sit amet purus malesuada congue. \cite{Crochemore2002}
 %---------------------------------------------------------------
 
 \begin{chapterabstract}
-	\dots in which we delve into the syntax and semantics of P4, explain its use
-	cases, and discuss the differences to conventional programming languages.
+	\dots in which we delve into the syntax and semantics of \acrshort{p4},
+	explain its use cases, and discuss the differences to conventional programming
+	languages.
 \end{chapterabstract}
 
-P4 is a high-level language for programming packet processors.
+One of the original motivations behind \acrshort{p4} was the need for
+restriction. While other \acrlong{dsl}s, such as Click\todo{citation}, existed
+at the time, their embeddings within general-purpose programming languages made
+it difficult to analyze data dependencies crucial for scheduling parallel
+execution. The expressiveness of a language complicates its efficient
+compilation. In the words of Robert Harper,
+
+\begin{displayquote}
+	\textit{The expressive power of a programming language arises from its
+	strictures and \emph{not} from its affordances.}
+
+	-- Robert Harper, \citedate*{pfpl1oplss2019} \cite{pfpl1oplss2019}
+\end{displayquote}
+
+Rather than embedding \acrshort{p4} in an existing language, these
+considerations motivated a clean-slate design. However, to understand why is
+packet processing any different from tasks suited to general-purpose programming
+languages, we need to familiarise ourselves with the switching architecture.
+
+%----------------------------%
+\section{What's in a switch}
+%----------------------------%
+
+In the following text, we choose to use \emph{switch} to mean a general packet
+forwarding device. Examples of switches are
+
+A network switch
+\todo[inline]{need a readable description of this \& network routing, also
+citations in the text below}
+
+Traditionally, these devices were examples of fixed-function hardware. Various
+networking protocols were implemented directly in circuitry, which made them
+efficient, but inflexible. It is impossible to reconfigure a fixed-function
+\acrshort{asic} to process a protocol it was not explicitly designed for in
+advance. If a new, backward-incompatible version of a given protocol emerges, or
+if a hardware error is found in the chip, the network administrators need to
+perform a costly hardware replacement in order to support, respectively
+circumvent it. Moreover, fixed-function hardware design is a lengthy and
+resource-intensive process. It may take several years before an updated
+fixed-function chip hits the market.
+
+The innovation of recent years is the introduction of \emph{programmable}
+network processors, which can change the set of supported protocols on the fly.
+These are similar to \acrshort{fpga}s in their reconfigurability, but
+specialised to packet switching and routing, which makes them more efficient. A
+programmable network switch has typically no prior knowledge of networking
+protocols but contains efficient circuitry for parsing and pattern-matching in
+order to support arbitrary\footnote{To some degree of complexity supported by
+the circuit.} protocols uploaded to the chip as microcode. While programmable
+networking hardware does incur a penalty for
+
+Other implementations of packet switching are also common. The already mentioned
+\acrlong{fpga}s can be programmed to simulate programmable or fixed-function
+networking hardware, and thus allow an even higher degree of flexibility.
+Naturally, \acrshort{fpga}s are less efficient than the circuits they simulate.
+Finally, there are software switches, programs for widespread processor
+architectures and operating systems, such as x86 and Linux. A software switch
+represents the peak of flexibility, programmability, and requires no special
+hardware other than what is already commonly present in conventional computers.
+Purely software-based solutions cannot compete in energy efficiency with any of
+the other approaches, but are useful for testing and in small-scale networks.
+
+\begin{figure}[t]
+	\includegraphics[
+		clip,
+		page=3,
+		trim=11.5cm 12.3cm 2.7cm 10.3cm, % left bottom right top (insane, I know)
+		width=1.00\textwidth
+	]{resources/p4original.pdf}
+	\caption{The original \acrshort{p4}\textsubscript{14} abstract forwarding
+	model\cite{p4original}.}
+	\label{fig:abstract-forwarding-model}
+\end{figure}
+
+To support network configurations regardless of their physical implementation,
+the original \acrshort{p4} paper defines the target-independent \emph{abstract
+forwarding model}, outlined in Figure~\ref{fig:abstract-forwarding-model}. This
+model assumes an end-to-end pipeline split into \emph{ingress} and \emph{egress}
+parts. An arriving packet is first parsed to recognize the headers present
+therein. The model assumes that the payload --  is handled separately by the device
+and is not available for pattern-matching.
+
+\todo[inline]{finish the model description, mention deparsers, explain metadata}
+
+A lifetime may end early if the packet is dropped during processing. Dropping is
+indicated by mutating metadata.
+
+
+%--------------------------------------%
+\chapter{Language Server Architecture}
+%--------------------------------------%
+
+
+
 
 \listoftodos[Work in progress]

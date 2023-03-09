@@ -1,3 +1,5 @@
+_minted-ctufit-thesis/
+*.acn
 *.aux
 *.bbl
 *.bcf
@@ -5,14 +7,17 @@
 *.dvi
 *.fdb_latexmk
 *.fls
+*.glo
+*.glsdefs
+*.ist
 *.lof
 *.log
 *.lol
 *.lot
-_minted-ctufit-thesis/
 *.out
 *.pdf
 *.ps
 *.run.xml
 *.synctex.gz
+*.tdo
 *.toc
