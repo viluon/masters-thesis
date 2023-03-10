@@ -131,8 +131,30 @@ Coden\-vy, Microsoft, and Red Hat collaborated on standardizing the protocol to
 enable other tools to benefit from shared
 tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
 
+% these comments make the section visible from the editor minimap
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
 %-------------------%
 \section{Outline}
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
 %-------------------%
 
 \begin{enumerate}
@@ -148,11 +170,25 @@ tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
 \end{enumerate}
 
 
+
+
+
+
+
+
 \todo[inline]{authorship: link to GitHub, detail which non-critical parts were
 implemented by a colleague}
 
 
-\begin{lstlisting}[caption={~Zbytečný kód},label=list:8-6,captionpos=t,float,abovecaptionskip=-\medskipamount,belowcaptionskip=\medskipamount,language=C]
+\begin{lstlisting}[
+	caption={~Zbytečný kód},
+	label=list:8-6,
+	captionpos=t,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=C
+]
 	#include<stdio.h>
 	#include<iostream>
 	// A comment
@@ -294,7 +330,64 @@ indicated by mutating metadata.
 \chapter{Language Server Architecture}
 %--------------------------------------%
 
+Language servers have a lot in common with compilers. Like compilers, they have
+to build up a semantic model of a program and provide useful diagnostics for
+invalid or suspicious input along the way. Unlike a compiler, a language server
+needs to maintain the semantic model over the course of an editing session.
+Rather than operating in batch mode, a language server runs continuously and is
+expected to provide feedback within milliseconds.
+
+However, language servers need neither to produce compilation artifacts nor to
+optimise the programs they process. Instead, they are effectively
+special-purpose query engines. Their output is a data structure optimised for
+fast querying, such as finding references, definitions, providing
+context-sensitive completion suggestions, etc. From that point of view, it could
+seem like a language server is merely a compiler frontend\todo{decide on \&
+unify "frontend" vs "front-end" (back, mid, \dots)} with very little backend
+logic. Unfortunately, this is not the case.
+
+The requirement for real-time feedback to the developer is the primary
+constraint on a language server's design. For all but the most basic languages
+and features, instant feedback requires an incremental computation approach and
+management of state that persists across updates to source files. The second
+most important consideration, and one to a large extent not shared with
+compilers, is resilience to errors. While a compiler generally expects
+well-formed input, a language server deals with all sorts of intermediate states
+of a document, including files with many syntactic errors, invalid encodings, or
+unsaved buffers outside the filesystem.
+
+To make matters worse, while compiler frontend implementations are often guided
+by a language specification\footnote{Even if, usually, an informal one.}, the
+space of invalid programs is unconstrained. Developers of language servers have
+to guess what intermediate states a program goes through during development and
+how to respond to them. Generating meaningful semantic models from invalid input
+is a challenging task, but doing so is often crucial for developers. For
+example, smart auto-completion in statically typed languages is expected to
+provide type-correct suggestions, even as the document being edited is
+type-incorrect, and often semantically or even syntactically invalid.
+
+In this chapter, we explore the status quo of language servers, how they differ
+from conventional batch-processing compilers, how this gap may narrow in the
+future, and what makes interactive language tooling difficult.
+
+%----------------------------------------%
+\section{The fruits of semantic support}
+%----------------------------------------%
+
+\todo[inline]{
+	should cover LSP ``language features" section, current tooling, show
+	especially limitations of current tools with invalid input, guessing,
+	complex situations (rust-analyzer failing to infer types rustc knows about),
+	etc
+}
+
+The largest language servers conformant to \acrshort{lsp} support a wide variety
+of features. The vast majority of the \acrshort{api} surface is optional,
+however. Upon establishing a connection, the client and server exchange
+information about their respective capabilities, establishing a subset of
+\acrshort{lsp} they both support.
 
 
+% full page: 15 minutes CC fun
 
 \listoftodos[Work in progress]
