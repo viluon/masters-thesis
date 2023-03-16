@@ -10,7 +10,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: compile
-      run: latexmk -pdf ctufit-thesis.tex
+      run: |
+        latexmk -pdf ctufit-thesis.tex
+        makeglossaries ctufit-thesis
+        latexmk -pdf ctufit-thesis.tex
     - name: release
       if: ${{ github.ref == 'refs/heads/master' }}
       uses: marvinpinto/action-automatic-releases@v1.2.1

@@ -18,6 +18,7 @@
 \newacronym{repl}{REPL}{read-eval-print loop}
 \newacronym{sdn}{SDN}{software-defined networking}
 \newacronym{xml}{XML}{eXtensible Markup Language}
+\newacronym{yacc}{YACC}{Yet Another Compiler-Compiler}
 \newcommand{\pfs}{\texorpdfstring{{P}4\textsubscript{16}}{P4 16} }
 
 % The following environment can be used as a mini-introduction for a chapter.
@@ -184,7 +185,7 @@ implemented by a colleague}
 
 
 \begin{lstlisting}[
-	caption={~Zbytečný kód},
+	caption={~Useless code},
 	label=list:8-6,
 	captionpos=t,
 	float,
@@ -576,6 +577,11 @@ the lens of extension installations alone. These technologies were in turn
 filtered out from StackOverflow's list of most popular languages to highlight
 the differences in ranking.
 
+\todo[inline]{
+	add the source
+	% https://marketplace.visualstudio.com/search?target=VSCode&category=Programming%20Languages&sortBy=Installs
+}
+
 \begin{table}\centering
 \caption{Popularity of programming languages among VS Code users and
 StackOverflow's 2022 Developer survey\cite{stackoverflow_survey_2022}
@@ -604,6 +610,114 @@ respondents.}
 
 \todo[inline]{the design of the p4 language server, what it learned from
 rust-analyzer, etc}
+
+\begin{itemize}
+	\item intention to do everything in-editor, Rust to WebAssembly
+	\item cannot reuse the open-source frontend, not error-tolerant, difficult
+	to work with, poor diagnostics
+	\item needs to adapt to various backends and architectures easily
+	\item open-source project, no point in keeping it closed, want to encourage
+	contributions from the community
+\end{itemize}
+
+The high-level architecture of the \acrshort{p4} Analyzer project marks a
+departure from conventional language server designs in that it primarily targets
+WebAssembly and aims to run entirely within the Visual Studio Code editor. This
+decision makes installation simpler for the end-user, cross-platform support
+easier for the developers, and security policy conformance trivial for any
+security teams involved.
+
+The main mode of operation is thus as follows: the language server runs in a
+WebAssembly worker of the \acrshort{p4} Analyzer VS Code extension. The
+extension itself defines a simple TextMate\todo{reference} grammar specification
+and serves as a thin client for the server. The main bulk of \acrshort{lsp}
+functionality is delegated to the editor. VS Code forwards edits to open files
+to the language server, which updates its model. When VS Code asks for
+completions, hover, diagnostics and other features, the analyzer recomputes
+necessary information on-demand and responds with the appropriate \acrshort{lsp}
+response.
+
+In addition to the WebAssembly executable, the \acrshort{p4} Analyzer project
+also compiles to a native binary that executes in a standalone process and
+communicates with an arbitrary \acrshort{lsp}-compliant client over a socket.
+However, the standalone language server requires support for certain features
+related to filesystem functionality that fall outside the protocol
+specification. We will discuss these in-depth later\todo{make sure this is
+indeed the case, put a reference here}.
+
+%--------------------------------------------%
+\section{The \acrshort{p4} Analyzer pipeline}
+%--------------------------------------------%
+
+The first step in our pipeline is lexical analysis. Somewhat unconventionally,
+our lexer produces tokens even for the preprocessor (i.e. it analyses
+preprocessor directives). Our preprocessor then operates at the lexeme level,
+rather than running separately as the first step. This requires a
+reimplementation of the preprocessor, which is already necessitated by
+fault-tolerance and WebAssembly support requirements anyway. On the upside, a
+custom preprocessor simplifies tracking of source positions, which are crucial
+for accurate diagnostics.
+
+\subsection{Lexical analysis}
+
+The \pfs specification defines a \acrshort{yacc}\todo{use a glossary entry
+instead of an acronym}/Bison grammar for the language. However, this grammar has
+several flaws.
+
+The primary issue is that it does not maintain a clean separation between a
+parser and a lexer and requires these two components to collaborate.
+
+\begin{displayquote}
+	\textit{The grammar is actually ambiguous, so the lexer and the parser must
+	collaborate for parsing the language. In particular, the lexer must be able
+	to distinguish two kinds of identifiers:}
+
+	\begin{itemize}
+		\item \textit{Type names previously introduced (\texttt{TYPE\_IDENTIFIER}
+		tokens)}
+		\item \textit{Regular identifiers (\texttt{IDENTIFIER} token)}
+	\end{itemize}
+
+	\textit{The parser has to use a symbol table to indicate to the lexer how to
+	parse subsequent appearances of identifiers.}
+
+	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
+\end{displayquote}
+
+The specification goes on to show an example where the lexer output depends on
+the parser state and mentions that the presented grammar ``\textit{has been heavily
+influenced by limitations of the Bison parser generator tool.}''
+
+The tight coupling between the lexer and the parser, as well as the decision to
+remain in the confines of an outdated parser generator despite its many
+drawbacks, are in our opinion examples of poor design for a language born in the
+twenty-first century. We have elected not to follow this ambiguous grammar
+specification in the \acrshort{p4} Analyzer project and instead build a pipeline
+that is tolerant to invalid input to the fullest extent possible.
+
+
+\subsection{The preprocessor}
+
+\pfs requires support for a preprocessor, very similar to the C preprocessor,
+directly in the specification. However, it does not ask implementors to support
+the entirety of \texttt{cpp}. Notably, only simple, parameter-less macros are
+allowed. This is already enough to necessitate running the preprocessor before
+starting the parser, however. Consider the code in Listing~\ref{lst:p4pp}. In
+this context,
+
+\begin{lstlisting}[
+	caption={~\pfs preprocessor example},
+	label=lst:p4pp,
+	captionpos=t,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+	parser x() {
+		a op b
+	}
+\end{lstlisting}
 
 
 % 3 new pages: LuaJIT-friendly sort
