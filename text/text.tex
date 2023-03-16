@@ -415,7 +415,14 @@ central features, already present in the initial specification of the protocol,
 are Go to Definition, Find References, Document Highlight, Document Link, Hover,
 Code Lens, and Document Symbols\todo{examples for everything, including a
 screenshot from Neovim or something that's not VS Code. Don't forget to add
-Haskell evaluation code lenses.}. Go to Definition and Find References are
+Haskell evaluation code lenses.}.
+
+\begin{figure}[h]
+	\includegraphics[width=1.00\textwidth]{resources/code_find_references.png}
+	\caption{Find References in Visual Studio Code via rust-analyzer.}
+\end{figure}
+
+Go to Definition and Find References are
 present in some of the oldest code comprehension tools, dating back at least to
 the Unix utility \texttt{ctags}\cite{exuberant_ctags}. These let the editor jump
 from a symbol's use-site to its definition and vice versa, just as their names
@@ -478,6 +485,14 @@ which is used by some servers to run tests or open a Find References dialog.
 A shorter but no less important range of \acrshort{api} calls supports the
 developer right when they are authoring code. The main features are
 auto-completion, signature help, formatting, and symbol renaming.
+
+\begin{figure}
+	\includegraphics[width=1.00\textwidth]{resources/code_signature_help.png}
+	\caption{Signature help in VS Code for Rust shows a pop-up with
+	documentation as well as the signature of the callee, highlighting the
+	parameter under cursor.}
+\end{figure}
+
 Auto-completion offers to fill in code as the programmer is typing, supports
 ranking results based on their relevance, on both the server and the client
 side, and can include a ``quick info'' description for each option. Signature
@@ -527,13 +542,18 @@ contexts. One example is the use of lenses and special comments in the Haskell
 Language Server project\cite{haskell_ls} to provide \acrshort{repl}-like
 functionality. Another is the LT$_\text{E}$X Visual Studio Code
 extension\cite{vscode_spellcheck}, which provides spell and grammar checking in
-Markdown and LaTeX\todo{improve this} documents, as well as in programming
-language comments. Even though \acrshort{lsp} has no built-in support for
-extracting the comments of a document or for spell checking in general,
-LT$_\text{E}$X achieves this with a combination of non-\acrshort{lsp}
-\acrshort{api}s and by leveraging \acrshort{lsp} diagnostics and code actions to
-provide suggested spellings.
+Markdown and \LaTeX~documents, as well as in programming language comments. Even
+though \acrshort{lsp} has no built-in support for extracting the comments of a
+document or for spell checking in general, LT$_\text{E}$X achieves this with a
+combination of non-\acrshort{lsp} \acrshort{api}s and by leveraging
+\acrshort{lsp} diagnostics and code actions to provide suggested spellings.
 
+\begin{figure}[h]\centering
+	\includegraphics[height=0.3\textheight]{resources/code_haskell_repl.png}
+	\caption{The Haskell Language Server project supports in-editor expression
+	evaluation in comments prefixed with \texttt{>>>} and checking QuickCheck
+	properties in comments starting with \texttt{prop>}.}
+\end{figure}
 
 \subsection{The state of the art}
 
@@ -544,29 +564,39 @@ Projects which served as the de facto \acrshort{ide} integration for the given
 language matured somewhat quicker than software that already had ample
 competition.
 
-JavaScript, TypeScript, CSS, and HTML support is built into VS Code, so it is
-exempt from these comparisons.
+\todo[inline]{the idea here is to compare "actual" language popularity
+with the popularity of a corresponding language server.
+We should see people preferring other tools for established technologies.}
 
-% \begin{table}
-% \caption{Popularity of programming languages among VS Code users and StackOverflow survey respondents.}
-% \begin{tabular}{|l|l|}
-% 	foo & bar \tabularnewline \hline
-% 	1 & 2
-% \end{tabular}
-% \end{table}
+We have chosen to exclude some technologies from this comparison. JavaScript,
+TypeScript, CSS, and HTML support is built into VS Code and therefore does not
+show up in VS Code marketplace statistics for installed language extensions.
+SQL, while popular, has too many dialects to present a faithful picture through
+the lens of extension installations alone. These technologies were in turn
+filtered out from StackOverflow's list of most popular languages to highlight
+the differences in ranking.
 
-\begin{enumerate}
-	\item python
-	\item c/c++
-	\item java
-	\item c\#
-	\item go
-	\item php
-	\item powershell
-	\item dart
-	\item ruby
-	\item rust
-\end{enumerate}
+\begin{table}\centering
+\caption{Popularity of programming languages among VS Code users and
+StackOverflow's 2022 Developer survey\cite{stackoverflow_survey_2022}
+respondents.}
+\begin{tabular}{|r|c|c|}
+	Rank & VS Code extension & Most popular programming and scripting languages
+	\tabularnewline \hline
+	1  & Python     & Python     \tabularnewline
+	2  & C/C++      & Java       \tabularnewline
+	3  & Java       & C\#        \tabularnewline
+	4  & C\#        & C/C++      \tabularnewline
+	5  & Go         & PHP        \tabularnewline
+	6  & PHP        & PowerShell \tabularnewline
+	7  & PowerShell & Go         \tabularnewline
+	8  & Dart       & Rust       \tabularnewline
+	9  & Ruby       & Dart       \tabularnewline
+	10 & Rust       & Ruby       \tabularnewline
+\end{tabular}
+\end{table}
+
+
 
 %---------------%
 \chapter{Design}
