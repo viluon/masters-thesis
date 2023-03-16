@@ -11,6 +11,7 @@
 \newacronym{asic}{ASIC}{application-specific integrated circuit}
 \newacronym{dsl}{DSL}{domain-specific language}
 \newacronym{fpga}{FPGA}{field-programmable gate array}
+\newacronym{ide}{IDE}{integrated development environment}
 \newacronym{lsp}{LSP}{Language Server Protocol}
 \newacronym{onf}{ONF}{Open Networking Foundation}
 \newacronym{p4}{P4}{Programming Protocol-independent Packet Processors}
@@ -342,11 +343,11 @@ expected to provide feedback within milliseconds.
 However, language servers need neither to produce compilation artifacts nor to
 optimise the programs they process. Instead, they are effectively
 special-purpose query engines. Their output is a data structure optimised for
-fast querying, such as finding references, definitions, providing
-context-sensitive completion suggestions, etc. From that point of view, it could
-seem like a language server is merely a compiler frontend\todo{decide on \&
-unify "frontend" vs "front-end" (back, mid, \dots)} with very little backend
-logic. Unfortunately, this is not the case.
+fast querying, such as finding references, definitions, or providing
+context-sensitive completion suggestions. From that point of view, it could seem
+like a language server is merely a compiler frontend\todo{decide on \& unify
+"frontend" vs "front-end" (back, mid, \dots)} with very little backend logic.
+Unfortunately, this is not the case.
 
 The requirement for real-time feedback to the developer is the primary
 constraint on a language server's design. For all but the most basic languages
@@ -377,13 +378,13 @@ future, and what makes interactive language tooling difficult.
 %----------------------------------------%
 
 \todo[inline]{
-	should cover LSP ``language features" section, current tooling, show
+	should cover LSP ``language features'' section, current tooling, show
 	especially limitations of current tools with invalid input, guessing,
 	complex situations (rust-analyzer failing to infer types rustc knows about),
 	etc
 }
 
-The largest language servers conformant to \acrshort{lsp} offer a wide variety
+The largest language servers conforming to \acrshort{lsp} offer a wide variety
 of features. The vast majority of the \acrshort{api} surface is optional,
 however. Upon establishing a connection, the client and server exchange
 information about their respective capabilities, establishing a subset of
@@ -479,7 +480,7 @@ developer right when they are authoring code. The main features are
 auto-completion, signature help, formatting, and symbol renaming.
 Auto-completion offers to fill in code as the programmer is typing, supports
 ranking results based on their relevance, on both the server and the client
-side, and can include a ``quick info" description for each option. Signature
+side, and can include a ``quick info'' description for each option. Signature
 help shows parameter name and type information when calling a procedure, method,
 or function. Formatting allows a language server to rewrite a document upon
 request, for example to conform to a particular code style. The \acrshort{lsp}
@@ -524,7 +525,55 @@ requests, relevant only to programming languages with subtyping. On the other
 hand, more general facets of the protocol see creative use in unintended
 contexts. One example is the use of lenses and special comments in the Haskell
 Language Server project\cite{haskell_ls} to provide \acrshort{repl}-like
-functionality.
+functionality. Another is the LT$_\text{E}$X Visual Studio Code
+extension\cite{vscode_spellcheck}, which provides spell and grammar checking in
+Markdown and LaTeX\todo{improve this} documents, as well as in programming
+language comments. Even though \acrshort{lsp} has no built-in support for
+extracting the comments of a document or for spell checking in general,
+LT$_\text{E}$X achieves this with a combination of non-\acrshort{lsp}
+\acrshort{api}s and by leveraging \acrshort{lsp} diagnostics and code actions to
+provide suggested spellings.
+
+
+\subsection{The state of the art}
+
+Some of the best tooling in the \acrshort{lsp} ecosystem comes, somewhat
+unsurprisingly, from Microsoft.
+
+Projects which served as the de facto \acrshort{ide} integration for the given
+language matured somewhat quicker than software that already had ample
+competition.
+
+JavaScript, TypeScript, CSS, and HTML support is built into VS Code, so it is
+exempt from these comparisons.
+
+% \begin{table}
+% \caption{Popularity of programming languages among VS Code users and StackOverflow survey respondents.}
+% \begin{tabular}{|l|l|}
+% 	foo & bar \tabularnewline \hline
+% 	1 & 2
+% \end{tabular}
+% \end{table}
+
+\begin{enumerate}
+	\item python
+	\item c/c++
+	\item java
+	\item c\#
+	\item go
+	\item php
+	\item powershell
+	\item dart
+	\item ruby
+	\item rust
+\end{enumerate}
+
+%---------------%
+\chapter{Design}
+%---------------%
+
+\todo[inline]{the design of the p4 language server, what it learned from
+rust-analyzer, etc}
 
 
 % 3 new pages: LuaJIT-friendly sort
