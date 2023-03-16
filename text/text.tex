@@ -7,14 +7,16 @@
 \setcounter{page}{1}
 
 % acronyms
-\newacronym{p4}{P4}{Programming Protocol-independent Packet Processors}
-\newacronym{lsp}{LSP}{Language Server Protocol}
-\newacronym{sdn}{SDN}{software-defined networking}
 \newacronym{api}{API}{application programming interface}
-\newacronym{onf}{ONF}{Open Networking Foundation}
-\newacronym{dsl}{DSL}{domain-specific language}
 \newacronym{asic}{ASIC}{application-specific integrated circuit}
+\newacronym{dsl}{DSL}{domain-specific language}
 \newacronym{fpga}{FPGA}{field-programmable gate array}
+\newacronym{lsp}{LSP}{Language Server Protocol}
+\newacronym{onf}{ONF}{Open Networking Foundation}
+\newacronym{p4}{P4}{Programming Protocol-independent Packet Processors}
+\newacronym{repl}{REPL}{read-eval-print loop}
+\newacronym{sdn}{SDN}{software-defined networking}
+\newacronym{xml}{XML}{eXtensible Markup Language}
 \newcommand{\pfs}{\texorpdfstring{{P}4\textsubscript{16}}{P4 16} }
 
 % The following environment can be used as a mini-introduction for a chapter.
@@ -219,7 +221,7 @@ implemented by a colleague}
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{table}\centering
-\caption[Příklad tabulky]{~Zadávání matematiky}\label{tab:matematika}
+\caption[Příklad tabulky]{~Typesetting math}\label{tab:mathematics}
 \begin{tabular}{l|l|c|c}
 	Typ		& Prostředí		& \LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
 	Text		& \verb|math|		& \verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
@@ -381,13 +383,152 @@ future, and what makes interactive language tooling difficult.
 	etc
 }
 
-The largest language servers conformant to \acrshort{lsp} support a wide variety
+The largest language servers conformant to \acrshort{lsp} offer a wide variety
 of features. The vast majority of the \acrshort{api} surface is optional,
 however. Upon establishing a connection, the client and server exchange
 information about their respective capabilities, establishing a subset of
 \acrshort{lsp} they both support.
 
+The functionality of \acrshort{lsp} comes in two main flavours: code
+comprehension and coding features. The former subsumes utilities which ease
+reading and navigating through code, such as Hover (where the editor displays
+details about an object under the pointer), Go to Definition, Find References,
+etc. Utilities like diagnostics, auto-completion, or code actions are more
+relevant to the programmer at the time they are authoring code and belong in the
+latter category.
 
-% full page: 15 minutes CC fun
+Next, we will delve into both categories and take a closer look at what they
+offer.
+
+
+\subsection{Code comprehension in \acrshort{lsp}}
+
+\todo[inline]{this is lsp 3.17}
+
+\newcommand{\org}{\pdftooltip{(original)}{This request was present in the
+original LSP specification.}}
+
+Code comprehension functionality takes up the majority of \acrshort{lsp}'s
+\acrshort{api} surface and has been growing during the protocol's evolution. The
+central features, already present in the initial specification of the protocol,
+are Go to Definition, Find References, Document Highlight, Document Link, Hover,
+Code Lens, and Document Symbols\todo{examples for everything, including a
+screenshot from Neovim or something that's not VS Code. Don't forget to add
+Haskell evaluation code lenses.}. Go to Definition and Find References are
+present in some of the oldest code comprehension tools, dating back at least to
+the Unix utility \texttt{ctags}\cite{exuberant_ctags}. These let the editor jump
+from a symbol's use-site to its definition and vice versa, just as their names
+imply. \acrshort{lsp}'s Document Highlight request does not provide syntax
+highlighting, rather, it serves to visually assist the programmer with locating
+references of a given symbol without having to explicitly invoke the Find
+References feature. Document Highlight could be merged with Find References
+functionality, but the \acrshort{lsp} maintainers choose to keep them separate
+and allow Document Highlight to report imprecise (``fuzzy'') matches. A response
+to the Document Link request lists the hyperlinks embedded in the document.
+Document Symbols provides a potentially hierarchical overview of the symbols of
+a document, which serves the ``outline'' feature of modern editors: a tree
+overview of a program's constructs, such as modules, classes, fields, and
+methods. The Hover feature provides additional contextual information when
+navigating code. It is typically implemented by the client rendering a pop-up
+box of documentation for a given symbol. Finally, Code Lens is a versatile
+editor feature for displaying additional information at a given position in a
+document, such as the number of references of a type or the code metrics of a
+procedure\cite{codelens_comparison}. It can trigger an action when activated,
+which is used by some servers to run tests or open a Find References dialog.
+
+\begin{figure}[t]\centering
+	\begin{multicols}{2}
+	\begin{enumerate}
+		\item Go to Declaration
+		\item Go to Definition \org
+		\item Go to Type Definition
+		\item Go to Implementation
+		\item Find References \org
+		\item Prepare Call Hierarchy
+		\item Call Hierarchy Incoming Calls
+		\item Call Hierarchy Outgoing Calls
+		\item Prepare Type Hierarchy
+		\item Type Hierarchy Super Types
+		\item Type Hierarchy Sub Types
+		\item Document Highlight \org
+		\item Document Link \org
+		\item Document Link Resolve \org
+		\item Hover \org
+		\item Code Lens \org
+		\item Code Lens Refresh
+		\item Folding Range
+		\item Selection Range
+		\item Document Symbols \org
+		\item Semantic Tokens
+		\item Inlay Hint
+		\item Inlay Hint Resolve
+		\item Inlay Hint Refresh
+		\item Document Color
+	\end{enumerate}
+	\end{multicols}
+
+	\label{fig:comprehension-requests}
+	\caption{Code comprehension -related requests in \acrshort{lsp} 3.17.}
+\end{figure}
+
+
+\subsection{Coding features in \acrshort{lsp}}
+
+A shorter but no less important range of \acrshort{api} calls supports the
+developer right when they are authoring code. The main features are
+auto-completion, signature help, formatting, and symbol renaming.
+Auto-completion offers to fill in code as the programmer is typing, supports
+ranking results based on their relevance, on both the server and the client
+side, and can include a ``quick info" description for each option. Signature
+help shows parameter name and type information when calling a procedure, method,
+or function. Formatting allows a language server to rewrite a document upon
+request, for example to conform to a particular code style. The \acrshort{lsp}
+formatting functionality can format either the entire document, a selected
+range, or reactively an arbitrary part of the document as the user types.
+Finally, symbol renaming performs a context-sensitive workspace-wide rename of a
+given symbol.
+
+\begin{figure}[t]\centering
+	\begin{multicols}{3}
+	\begin{enumerate}
+		\item Inline Value
+		\item Inline Value Refresh
+		\item Moniker
+		\item Completion Proposals \org
+		\item Completion Item Resolve \org
+		\item Publish Diagnostics
+		\item Pull Diagnostics
+		\item Signature Help \org
+		\item Code Action
+		\item Code Action Resolve
+		\item Color Presentation
+		\item Formatting \org
+		\item Range Formatting \org
+		\item On type Formatting \org
+		\item Rename \org
+		\item Prepare Rename
+		\item Linked Editing Range
+	\end{enumerate}
+	\end{multicols}
+
+	\label{fig:coding-requests}
+	\caption{Coding language features in \acrshort{lsp} 3.17.}
+\end{figure}
+
+Later \acrshort{lsp} revisions added high-level features not universally
+applicable to all programming languages. For instance, version 3.16 added
+\emph{linked editing}, which some conforming implementations use to update
+opening and closing \acrshort{xml} tags seamlessly without the user specifically
+triggering a rename action. Version 3.17 introduced \emph{type hierarchy}
+requests, relevant only to programming languages with subtyping. On the other
+hand, more general facets of the protocol see creative use in unintended
+contexts. One example is the use of lenses and special comments in the Haskell
+Language Server project\cite{haskell_ls} to provide \acrshort{repl}-like
+functionality.
+
+
+% 3 new pages: LuaJIT-friendly sort
+% 5 new pages: look into CC playback
+% 7 new pages: build the game world, including saves
 
 \listoftodos[Work in progress]

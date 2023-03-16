@@ -19,5 +19,7 @@ _minted-ctufit-thesis/
 *.ps
 *.run.xml
 *.synctex.gz
+*.synctex(busy)
 *.tdo
 *.toc
+*.upa
