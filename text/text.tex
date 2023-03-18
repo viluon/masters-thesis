@@ -225,9 +225,12 @@ implemented by a colleague}
 \begin{table}\centering
 \caption[Příklad tabulky]{~Typesetting math}\label{tab:mathematics}
 \begin{tabular}{l|l|c|c}
-	Typ		& Prostředí		& \LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
-	Text		& \verb|math|		& \verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
-	Displayed	& \verb|displaymath|	& \verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
+	Typ	& Prostředí	&
+		\LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
+	Text	& \verb|math|	&
+		\verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
+	Displayed	& \verb|displaymath|	&
+		\verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
 \end{tabular}
 \end{table}
 
@@ -328,6 +331,52 @@ and is not available for pattern-matching.
 
 A lifetime may end early if the packet is dropped during processing. Dropping is
 indicated by mutating metadata.
+
+%--------------------------%
+\section{The \pfs language}
+%--------------------------%
+
+\begin{figure}[t]
+	\includegraphics[width=1.00\textwidth]{resources/p4_16-architecture-model.png}
+
+	\caption{\pfs program interfaces for an abstract architecture with two
+	programmable blocks\cite{p416:v123:spec}.}
+	\label{fig:arch-model}
+\end{figure}
+
+\acrshort{p4} is not a programming language for von Neumann architectures. The
+abstract model assumes the target machine to be some sort of network processor
+with programmable blocks embedded in a static pipeline.
+Figure~\ref{fig:arch-model} illustrates such a machine and highlights the
+interfaces of the \acrshort{p4} program.
+
+A \acrshort{p4} program specifies a mapping of vectors of bits -- a bit\-vector
+endomorphism. Every \acrshort{p4} program terminates; the language has no
+looping constructs, a compiler can thus determine the precise maximum runtime of
+a program statically.
+
+\todo[inline]{in discussing the subpar nature of the spec, include examples of
+	mistakes.
+	\href{https://p4.org/p4-spec/docs/P4-16-v-1.2.3.html\#sec-minsizeinbits}{compile-time
+	size determination} mentions ``\emph{Each of these method calls evaluate to
+	compile-time known values that return the minimum size in bits required to
+	store the expression,}'' clearly forgetting to take the \texttt{maxSize*}
+	functions into account}
+
+\subsection{Syntax}
+
+\pfs syntax is reminiscent of imperative programming languages in the C family.
+It uses prefix notation for typed bindings, braces for lexical scoping blocks,
+and semicolons to separate statements. Expression syntax borrows heavily from C.
+
+\subsection{Semantics}
+
+The semantics of \pfs is defined in terms of abstract machines executing
+imperative code. Unfortunately, the specification gives no formal treatment of
+these machines; they are described only in natural language and pseudocode.
+
+\todo[inline]{point out how the language tries to avoid undefined behaviour
+and makes arithmetic typing rules saner and safer with no undef. behaviour}
 
 
 %--------------------------------------%
@@ -476,8 +525,8 @@ which is used by some servers to run tests or open a Find References dialog.
 	\end{enumerate}
 	\end{multicols}
 
-	\label{fig:comprehension-requests}
 	\caption{Code comprehension -related requests in \acrshort{lsp} 3.17.}
+	\label{fig:comprehension-requests}
 \end{figure}
 
 
@@ -528,8 +577,8 @@ given symbol.
 	\end{enumerate}
 	\end{multicols}
 
-	\label{fig:coding-requests}
 	\caption{Coding language features in \acrshort{lsp} 3.17.}
+	\label{fig:coding-requests}
 \end{figure}
 
 Later \acrshort{lsp} revisions added high-level features not universally
@@ -805,6 +854,39 @@ control pipe(inout h hdr) {
 	}
 }
 \end{lstlisting}
+
+
+\subsection{The parser}
+
+The next natural step in the pipeline is the act of finding the productions of a
+\pfs grammar that match the preprocessed input program; parsing. While the steps
+up to this point are fairly simplistic and efficient, parsing is a
+resource-intensive process. A language server is expected to provide real-time
+feedback to the developer, including auto-completion suggestions updated with
+every keypress\todo{the lexer can identify a caret inside a (possibly
+unfinished!) comment or string. Maybe we can learn from that for naive
+lexer-based auto-completion?}. Low latency is crucial to the end-user and the
+parser lies on every critical path from user input to high-level results shown
+in the editor's interface. At the same time, a typical \pfs program is likely to
+consist of a long prefix that does not change between edits and a
+user-maintained suffix that changes frequently. This is because a \pfs program
+usually begins with \texttt{\#include} directives referencing platform-specific
+files with constants, error codes, \texttt{extern} definitions and other shared
+code. These constraints and ???\todo{word here} are a very good fit for the
+field of \emph{incremental parsing}.
+
+An incremental parser aims to reuse previously computed information about the
+input in response to small perturbations. Our parser specifically builds on
+incremental packrat parsing\cite{dubroy2017incremental_packrat_parsing}, which
+places few constraints on grammar design and is easy to implement in an
+extensible manner.
+
+
+\subsubsection*{Error tolerance}
+
+Error tolerance in parsing is far more nuanced than in any of the previous
+steps, which is not surprising with regard to the relative complexity of the
+languages the individual steps recognize and process.
 
 
 % 3 new pages: LuaJIT-friendly sort
