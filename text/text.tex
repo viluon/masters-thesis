@@ -352,8 +352,8 @@ interfaces of the \acrshort{p4} program.
 
 A \acrshort{p4} program specifies a mapping of vectors of bits -- a bit\-vector
 endomorphism. Every \acrshort{p4} program terminates; the language has no
-looping constructs, a compiler can thus determine the precise maximum runtime of
-a program statically.
+looping constructs and no recursion, a compiler can thus determine the precise
+maximum runtime of a program statically.
 
 \todo[inline]{in discussing the subpar nature of the spec, include examples of
 	mistakes.
@@ -365,18 +365,205 @@ a program statically.
 
 \subsection{Syntax}
 
+\todo[inline]{
+	describe headers and their relation to structs, explain annotations
+}
+
+% relevant p4 spec sections
+
+% 6.1.   Syntax and semantics
+% 6.1.1. Grammar
+% 6.1.2. Semantics and the P4 abstract machines
+% 6.2.   Preprocessing
+% 6.2.1. P4 core library
+% 6.3.   Lexical constructs
+% 6.3.1. Identifiers
+% 6.3.2. Comments
+% 6.3.3. Literal constants
+% 6.4.   Naming conventions
+% 6.5.   P4 programs
+% 6.5.1. Scopes
+% 6.5.2. Stateful elements
+% 6.6.   L-values
+% 6.7.   Calling convention: call by copy in/copy out
+% 6.7.1. Justification
+% 6.7.2. Optional parameters
+% 6.8.   Name resolution
+% 6.9.   Visibility
+
 \pfs syntax is reminiscent of imperative programming languages in the C family.
 It uses prefix notation for typed bindings, braces for lexical scoping blocks,
-and semicolons to separate statements. Expression syntax borrows heavily from C.
+and semicolons to separate statements. However, instead of general-purpose
+procedures, the top level constructs for executable code are mainly controls,
+parsers, and actions. These will be explained in detail in this section.
+
+\subsubsection*{Functions and parametrized code}
+
+Functions in \acrshort{p4} come in several flavours. The first kind is known as
+\emph{function declarations} and is perhaps the closest relative of procedures
+in conventional imperative programming languages. The major difference is that
+all parameters to a \acrshort{p4} function need to include a \emph{direction}.
+
+\begin{description}
+	\item[parameter direction] is either \texttt{in}, \texttt{out}, or
+	\texttt{inout}. \texttt{in} indicates a read-only parameter with a defined
+	value, \texttt{out} indicates a read-write parameter whose value is
+	initially undefined upon entering the function body, and \texttt{inout}
+	indicates a read-write parameter with a defined value.
+\end{description}
+
+Only l-values\todo{what are those?} can be passed as \texttt{out} and
+\texttt{inout} parameters. The execution of the function call can change the
+value of an \texttt{out} or \texttt{inout} parameter's corresponding l-value.
+Note that \acrshort{p4} functions can combine \texttt{out} parameters and return
+values.
+
+Parameter directions are \acrshort{p4}'s way of introducing a limited form of
+references, themselves a principled approach to pointers. Parametrized
+\acrshort{p4} code follows a copy in / copy out calling convention, which makes
+functions easy to reason about and limits side effecting behaviour of
+\texttt{extern} methods. We will discuss this later in ?\todo{reference here}
+
+Another construct for parametrized code are \emph{parser declarations}. A
+\acrshort{p4} parser describes a finite state machine whose job is to recognize
+valid packets and load their headers into the storage facilities of the target.
+The machine begins executing from the \texttt{start} state.
+
+\begin{figure}\centering
+	\begin{tikzpicture}[
+		->,
+		>=stealth,
+		shorten >=1pt,
+		auto,
+		node distance=1cm,
+		semithick
+	]
+		\tikzstyle{every state}=[fill=white,draw=black,text=black,minimum size=2em]
+		\tikzstyle{cloud}=[draw=gray!20,circle,fill=gray!10,minimum height=2em]
+		\tikzstyle{rejecting}=[state,double,minimum size=2em]
+
+		\node[state] (start) {$\text{start}$};
+		\node[state, below=of start] (q2) {};
+		\node[state, left=of q2] (q1) {};
+		\node[state, below=of q1] (q3) {};
+		\node[state, below=of q2] (q4) {};
+		\node[state, right=of q4] (q5) {};
+		\node[state, accepting, below=1.5cm of q4] (accept) {$\text{accept}$};
+		\node[rejecting, below=1.5cm of q3] (reject) {$\text{reject}$};
+
+		\begin{pgfonlayer}{background}
+			\node[cloud,fit=(q1)(q2)(q3)(q4)(q5)(start),inner sep=2pt] (cloud) {};
+		\end{pgfonlayer}
+
+		\path
+			(start) edge          (q2)
+			(q1)edge              (q2)
+				edge              (q3)
+			(q2)edge              (q4)
+			(q3)edge              (q4)
+				edge              (reject)
+			(q4)edge              (q5)
+				edge              (accept)
+			(q5)edge              (accept)
+			(q5)edge [bend right] (q3);
+	\end{tikzpicture}
+	\caption{An abstract overview of a \acrshort{p4} parser. The states inside
+	the grey circle are accessible to user code.}
+	\label{fig:parser-overview}
+\end{figure}
+
+
+\begin{lstlisting}[
+	caption={~A function declaration in \pfs.},
+	label=lst:p4-fun,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+bit<32> max(in bit<32> left, in bit<32> right) {
+	return (left > right) ? left : right;
+}
+\end{lstlisting}
+
+
 
 \subsection{Semantics}
 
-The semantics of \pfs is defined in terms of abstract machines executing
-imperative code. Unfortunately, the specification gives no formal treatment of
-these machines; they are described only in natural language and pseudocode.
+The semantics of \pfs is defined entirely in terms of abstract machines
+executing imperative code. A conforming compiler is free to rewrite the \pfs
+program as long as it maintains the observable behaviour of all abstract
+machines involved. Unfortunately, the specification gives no formal treatment
+of these machines; they are described only in natural language and pseudocode.
 
 \todo[inline]{point out how the language tries to avoid undefined behaviour
 and makes arithmetic typing rules saner and safer with no undef. behaviour}
+
+
+\subsubsection*{Parser abstract machine}
+
+A parser conceptually manipulates a \texttt{ParserModel} data structure.
+
+\begin{lstlisting}[
+	caption={~The conceptual model of the state of a \acrshort{p4} parser.},
+	label=lst:p4-parser-model,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+ParserModel {
+    error       parseError;
+    onPacketArrival(packet p) {
+        ParserModel.parseError = error.NoError;
+        goto start;
+    }
+}
+\end{lstlisting}
+
+The meaning of \texttt{accept} and \texttt{reject} states is
+architecture-dependent. For example, a rejected packet may be dropped or
+passed to the next block of the processing pipeline.
+
+Parser transitions\todo{semantically equivalent to \texttt{goto} statements}
+
+\subsubsection*{Calling convention}
+
+In order to simplify reasoning about function-like constructs, \pfs follows the
+\emph{call by copy in / copy out} calling convention. The specification
+describes the exact steps a conforming implementation needs to go follow in
+general\footnote{Compiler optimizations could, in specific cases, eliminate some
+of these steps, provided prior analysis determines such optimizations correct.}
+to evaluate a function call expression.
+
+\begin{displayquote}
+	\emph{\begin{enumerate}
+		\item Arguments are evaluated from left to right as they appear in the
+		function call expression.
+		\item If a parameter has a default value and no corresponding argument
+		is supplied, the default value is used as an argument.
+		\item For each \texttt{out} and \texttt{inout} argument the
+		corresponding l-value is saved
+		(so it cannot be changed by the evaluation of the following arguments).
+		This is important if the argument contains indexing operations into a
+		header stack.
+		\item The value of each argument is saved into a temporary.
+		\item The function is invoked with the temporaries as arguments. We are
+		guaranteed that the temporaries that are passed as arguments are never
+		aliased to each other, so this ``generated'' function call can be
+		implemented using call-by-reference if supported by the architecture.
+		\item On function return, the temporaries that correspond to
+		\texttt{out} or
+		\texttt{inout} arguments are copied in order from left to right into the l-values
+		saved in Step 3.
+	\end{enumerate}}
+
+	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
+\end{displayquote}
 
 
 %--------------------------------------%
@@ -592,10 +779,10 @@ contexts. One example is the use of lenses and special comments in the Haskell
 Language Server project\cite{haskell_ls} to provide \acrshort{repl}-like
 functionality. Another is the LT$_\text{E}$X Visual Studio Code
 extension\cite{vscode_spellcheck}, which provides spell and grammar checking in
-Markdown and \LaTeX~documents, as well as in programming language comments. Even
-though \acrshort{lsp} has no built-in support for extracting the comments of a
-document or for spell checking in general, LT$_\text{E}$X achieves this with a
-combination of non-\acrshort{lsp} \acrshort{api}s and by leveraging
+Markdown and \LaTeX{} documents, as well as in programming language comments.
+Even though \acrshort{lsp} has no built-in support for extracting the comments
+of a document or for spell checking in general, LT$_\text{E}$X achieves this
+with a combination of non-\acrshort{lsp} \acrshort{api}s and by leveraging
 \acrshort{lsp} diagnostics and code actions to provide suggested spellings.
 
 \begin{figure}[h]\centering
@@ -712,8 +899,14 @@ The \pfs specification defines a \acrshort{yacc}\todo{use a glossary entry
 instead of an acronym}/Bison grammar for the language. However, this grammar has
 several flaws.
 
-The primary issue is that it does not maintain a clean separation between a
-parser and a lexer and requires these two components to collaborate.
+For example, it reuses the \texttt{parserTypeDeclaration} non\-terminal in
+\texttt{parserDeclaration}s but imposes extra restrictions: a parser declaration
+may not be generic. This requires checking the child production outside the
+grammar specification.
+
+However, the primary issue is that the grammar design does not maintain a clean
+separation between a parser and a lexer and requires these two components to
+collaborate.
 
 \begin{displayquote}
 	\textit{The grammar is actually ambiguous, so the lexer and the parser must
@@ -886,11 +1079,9 @@ extensible manner.
 
 Error tolerance in parsing is far more nuanced than in any of the previous
 steps, which is not surprising with regard to the relative complexity of the
-languages the individual steps recognize and process.
+languages that the individual steps recognize and process.
 
 
-% 3 new pages: LuaJIT-friendly sort
-% 5 new pages: look into CC playback
-% 7 new pages: build the game world, including saves
+% 1 new page of real text about p4: implement trace view for planet-garden
 
 \listoftodos[Work in progress]
