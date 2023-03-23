@@ -11,6 +11,7 @@
 \newacronym{asic}{ASIC}{application-specific integrated circuit}
 \newacronym{dsl}{DSL}{domain-specific language}
 \newacronym{fpga}{FPGA}{field-programmable gate array}
+\newacronym{fsm}{FSM}{finite state machine}
 \newacronym{ide}{IDE}{integrated development environment}
 \newacronym{lsp}{LSP}{Language Server Protocol}
 \newacronym{onf}{ONF}{Open Networking Foundation}
@@ -424,10 +425,124 @@ references, themselves a principled approach to pointers. Parametrized
 functions easy to reason about and limits side effecting behaviour of
 \texttt{extern} methods. We will discuss this later in ?\todo{reference here}
 
+.
+\todo[inline]{subsubsubsection?}
+
 Another construct for parametrized code are \emph{parser declarations}. A
-\acrshort{p4} parser describes a finite state machine whose job is to recognize
-valid packets and load their headers into the storage facilities of the target.
-The machine begins executing from the \texttt{start} state.
+\acrshort{p4} parser describes a \acrlong{fsm} whose job is to recognize valid
+packets and load their headers into the storage facilities of the target. Parser
+declarations define all the states of the \acrshort{fsm}, except the implicit
+built-in \texttt{accept} and \texttt{reject} states further described in the
+semantics section\todo{reference here}. Each parser has to contain at least the
+initial \texttt{start} state. During parsing, the parser can manipulate local
+state\todo{context?} in the form of variables and \texttt{extern}
+instantiations. These are defined directly in the parser declaration block,
+before listing any states, meaning that the type of this local context is
+statically known and independent of the state the parser may appear in at
+runtime. In other words, parser declarations follow lexical scoping.
+
+States can introduce lexically-scoped local variables, but not additional
+\texttt{extern}s. Other statements like conditionals, assignments, or method
+calls are also allowed. The specification explicitly points out that specific
+target architectures can place restrictions on the set of constructs and
+operations a programmer can use within a parser.
+
+\pfs parser declarations unrestricted by the target architecture may appear very
+similar to regular imperative code. However, the important distinction between a
+parser and other function-like constructs in the \pfs language are data
+extraction, pattern-matching, error handling, and state transitions.
+
+Data extraction moves information from the input packet into memory available
+for pattern-matching further down the pipeline, typically registers or similar
+containers. To facilitate this operation, the \acrshort{p4} core library
+contains an intrinsic\todo{established term?} \texttt{extern}\todo{we should
+definitely change this and the plural into a command} definition called
+\texttt{packet\_in} which represents incoming packets. This special
+\texttt{extern} cannot be manually instantiated\todo{make sure we explain
+instantiation prior to this. Maybe externs should be described first in the
+syntax section?}, but it is instantiated implicitly for every parser
+parameter\todo{arg vs param} of type \texttt{packet\_in}. This allows parser
+states to invoke the methods of this \texttt{extern}, shown in
+Listing~\ref{lst:p4-prsr-packet-in}.
+
+\begin{lstlisting}[
+	caption={~The intrinsic \texttt{extern} that facilitates data extraction.},
+	label=lst:p4-prsr-packet-in,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+extern packet_in {
+	void extract<T>(out T headerLvalue);
+	void extract<T>(out T variableSizeHeader, in bit<32> varFieldSizeBits);
+	T lookahead<T>();
+	bit<32> length();  // This method may be unavailable in some architectures
+	void advance(bit<32> bits);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[
+	caption={~An example of data extraction in a \pfs parser.},
+	label=lst:p4-prsr-extract,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+struct Result { Ethernet_h ethernet;  /* more fields omitted */ }
+parser P(packet_in b, out Result r) {
+	state start {
+		b.extract(r.ethernet);
+	}
+}
+\end{lstlisting}
+
+An example of extraction of fixed-width data can be seen in
+Listing~\ref{lst:p4-prsr-extract}.
+
+Data extraction and computation within parser states subsumes the stateful part
+of a \acrlong{fsm}. Because isolated states would not be very useful on their
+own, \acrshort{p4} parsers can specify state transitions using the
+\texttt{transition} statement. The target of the transition can be either given
+statically or computed. A missing \texttt{transition} statement at the end of a
+state block implies a transition into the \texttt{reject} state.
+
+Another parser-specific construct facilitates the computation of transition
+targets by pattern-matching on extracted data. The \texttt{select} expression
+tries to match a value against a number of patterns and evaluates to a state, if
+successful. Otherwise, it triggers a runtime error with code
+\texttt{error.NoMatch}. The patterns of a \texttt{select} expression can contain
+integer literals, bit masks, ranges, don't-care values, tuples (when matching on
+multiple values simultaneously), or, on some architectures, \textit{parser value
+sets} specified at runtime by the control plane.\todo{one snippet to rule them
+all, one snippet to find them, one snippet to bring them all and in the \LaTeX{}
+bind them.}
+
+While error-handling already happens implicitly in \texttt{select} expressions,
+the \texttt{verify} statement, defined in Listing~\ref{lst:p4-prsr-verify},
+allows the programmer to ergonomically check arbitrary assertions about the
+parsed data. Passing \texttt{false} as the first argument to \texttt{verify}
+immediately transitions to the \texttt{reject} state, setting the parser error
+to the code given as the second argument. Otherwise, execution proceeds with the
+next statement.
+
+\begin{lstlisting}[
+	caption={~The interface of the \texttt{verify} built-in.},
+	label=lst:p4-prsr-verify,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+extern void verify(in bool condition, in error err);
+\end{lstlisting}
 
 \begin{figure}\centering
 	\begin{tikzpicture}[
@@ -488,6 +603,7 @@ bit<32> max(in bit<32> left, in bit<32> right) {
 }
 \end{lstlisting}
 
+\todo[inline]{subparsers, header stacks}
 
 
 \subsection{Semantics}
@@ -529,7 +645,8 @@ The meaning of \texttt{accept} and \texttt{reject} states is
 architecture-dependent. For example, a rejected packet may be dropped or
 passed to the next block of the processing pipeline.
 
-Parser transitions\todo{semantically equivalent to \texttt{goto} statements}
+Parser transitions are analogous to \texttt{goto} statements or parameter-less
+tail calls.
 
 \subsubsection*{Calling convention}
 
@@ -565,6 +682,14 @@ to evaluate a function call expression.
 	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
 \end{displayquote}
 
+The calling convention gives function calls\todo{I really need some sort of
+universal definition of function-like constructs in p4 that I stick to
+throughout the text} a semantics that ensures arguments cannot alias one another
+and impure functions cannot hold references to \acrshort{p4} code. This design
+is ultimately motivated by the need to control the side effects of
+\texttt{extern} functions and methods, which are arbitrarily powerful. The copy
+in / copy out calling convention lets compilers reason about programs in the
+presence of \texttt{extern}s.
 
 %--------------------------------------%
 \chapter{Language Server Architecture}
@@ -1081,7 +1206,5 @@ Error tolerance in parsing is far more nuanced than in any of the previous
 steps, which is not surprising with regard to the relative complexity of the
 languages that the individual steps recognize and process.
 
-
-% 1 new page of real text about p4: implement trace view for planet-garden
 
 \listoftodos[Work in progress]
