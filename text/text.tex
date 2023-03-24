@@ -398,6 +398,53 @@ and semicolons to separate statements. However, instead of general-purpose
 procedures, the top level constructs for executable code are mainly controls,
 parsers, and actions. These will be explained in detail in this section.
 
+\subsubsection*{\texttt{extern} objects and functions}
+
+Before diving into the bulk of the syntactical forms that dominate user-written
+\acrshort{p4} code, we need to introduce the general concept of
+\texttt{extern}s. These special objects and functions were already present in
+\acrshort{p4}\textsubscript{14} version 1.1. \pfs fully embraced these
+constructs, which helped to both simplify and generalize the language.
+
+\texttt{extern} objects and functions describe interfaces to facilities provided
+by the architecture, as well as certain built-in language
+constructs\todo{reference the parser declaration grammar section}. For example,
+the \texttt{extern} object in Listing~\ref{lst:p4-extern-cksum} allows
+\acrshort{p4} code to utilize a fixed-function checksum unit provided by the
+target. The object specifies no implementation for the listed constructors and
+methods.
+
+To invoke a method of the checksum unit, the user needs first to
+\emph{instantiate} the \texttt{extern} object. This syntactic form is shared
+among all types with constructors: \texttt{control} blocks, \texttt{parser}s,
+and \texttt{package}s\todo{describe those somewhere}. The effect of an
+instantiation is to allocate the corresponding object, binding it to the
+specified name.
+
+The compiler is in charge of mapping instances of \texttt{extern}s to the target
+architecture. If it does not find a mapping, either because the target does not
+support the \texttt{extern} or does not have the resources to fit all its
+instances, the compilation fails with an error.
+
+\begin{lstlisting}[
+	caption={~An \texttt{extern} object specifying the interface to the target's checksum unit.},
+	label=lst:p4-extern-cksum,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+extern Checksum16 {
+	Checksum16();              // constructor
+	void clear();              // prepare unit for computation
+	void update<T>(in T data); // add data to checksum
+	void remove<T>(in T data); // remove data from existing checksum
+	bit<16> get(); // get the checksum for the data added since last clear
+}
+\end{lstlisting}
+
 \subsubsection*{Functions and parametrized code}
 
 Functions in \acrshort{p4} come in several flavours. The first kind is known as
