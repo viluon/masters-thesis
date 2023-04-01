@@ -1,0 +1,240 @@
+%---------------%
+\chapter{Design}
+%---------------%
+
+\todo[inline]{the design of the p4 language server, what it learned from
+rust-analyzer, etc}
+
+\begin{itemize}
+	\item intention to do everything in-editor, Rust to WebAssembly
+	\item cannot reuse the open-source frontend, not error-tolerant, difficult
+	to work with, poor diagnostics
+	\item needs to adapt to various backends and architectures easily
+	\item open-source project, no point in keeping it closed, want to encourage
+	contributions from the community
+\end{itemize}
+
+The high-level architecture of the \acrshort{p4} Analyzer project marks a
+departure from conventional language server designs in that it primarily targets
+WebAssembly and aims to run entirely within the Visual Studio Code editor. This
+decision makes installation simpler for the end-user, cross-platform support
+easier for the developers, and security policy conformance trivial for any
+security teams involved.
+
+The main mode of operation is thus as follows: the language server runs in a
+WebAssembly worker of the \acrshort{p4} Analyzer VS Code extension. The
+extension itself defines a simple TextMate\todo{reference} grammar specification
+and serves as a thin client for the server. The main bulk of \acrshort{lsp}
+functionality is delegated to the editor. VS Code forwards edits to open files
+to the language server, which updates its model of the workspace. When VS Code
+asks for completions, hover, diagnostics, or other features, the analyzer
+recomputes necessary information on-demand and responds appropriately.
+
+In addition to the WebAssembly executable, the \acrshort{p4} Analyzer project
+also compiles to a native binary that executes in a standalone process and
+communicates with an arbitrary \acrshort{lsp}-compliant client over a socket.
+However, the standalone language server requires support for certain features
+related to filesystem functionality that fall outside the protocol
+specification. We will discuss these in-depth later\todo{make sure this is
+indeed the case, put a reference here}.
+
+%--------------------------------------------%
+\section{The \acrshort{p4} Analyzer pipeline}
+%--------------------------------------------%
+
+The first step in our pipeline is lexical analysis. Somewhat unconventionally,
+our lexer produces tokens even for the preprocessor (i.e. it analyses
+preprocessor directives). Our preprocessor then operates at the lexeme level,
+rather than running separately as the first step. This requires a
+reimplementation of the preprocessor, which is already necessitated by
+fault-tolerance and WebAssembly support requirements anyway. On the upside, a
+custom preprocessor simplifies tracking of source positions, which are crucial
+for accurate diagnostics.
+
+\subsection{Lexical analysis}
+
+The \pfs specification defines a \acrshort{yacc}\todo{use a glossary entry
+instead of an acronym}/Bison grammar for the language. However, this grammar has
+several flaws.
+
+For example, it reuses the \texttt{parserTypeDeclaration} non\-terminal in
+\texttt{parserDeclaration}s but imposes extra restrictions: a parser declaration
+may not be generic. This requires checking the child production outside the
+grammar specification.
+
+However, the primary issue is that the grammar design does not maintain a clean
+separation between a parser and a lexer and requires these two components to
+collaborate.
+
+\begin{displayquote}
+	\textit{The grammar is actually ambiguous, so the lexer and the parser must
+	collaborate for parsing the language. In particular, the lexer must be able
+	to distinguish two kinds of identifiers:}
+
+	\begin{itemize}
+		\item \textit{Type names previously introduced (\texttt{TYPE\_IDENTIFIER}
+		tokens)}
+		\item \textit{Regular identifiers (\texttt{IDENTIFIER} token)}
+	\end{itemize}
+
+	\textit{The parser has to use a symbol table to indicate to the lexer how to
+	parse subsequent appearances of identifiers.}
+
+	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
+\end{displayquote}
+
+The specification goes on to show an example where the lexer output depends on
+the parser state and mentions that the presented grammar ``\textit{has been heavily
+influenced by limitations of the Bison parser generator tool.}''
+
+The tight coupling between the lexer and the parser, as well as the decision to
+remain in the confines of an outdated parser generator despite its many
+drawbacks, are in our opinion examples of poor design for a language born in the
+twenty-first century. We have elected not to follow this ambiguous grammar
+specification in the \acrshort{p4} Analyzer project and instead build a pipeline
+that is tolerant to invalid input to the fullest extent possible, while
+accepting the same language.
+
+Our lexer's task is to convert the input string into a stream of lexemes. The
+lexer is a standalone finite state machine independent of any later stages in
+the pipeline. It has a secondary output for reporting diagnostics, but this side
+channel is write-only.
+
+\subsubsection*{Error tolerance}
+
+Error tolerance at the lexer level means proceeding with lexeme stream
+generation despite nonsensical input. We emit a special error token whenever
+such input is encountered. Additionally, the lexer validates numeric constants,
+which can specify width, base, and signedness\todo{is this a word?}. These
+properties could be out of bounds for a given literal. In these cases, the lexer
+produces\todo{"should produce" language instead? since this is a design chapter,
+wink wink?} a valid token anyway but logs an error-level diagnostic, which is
+reported to the user once lexing completes.
+
+
+\subsection{The preprocessor}
+
+\pfs requires support for a preprocessor, very similar to the C preprocessor,
+directly in the specification. However, it does not ask implementors to support
+the entirety of \texttt{cpp}. Notably, only simple, parameter-less macros are
+allowed. This is already enough to necessitate running the preprocessor before
+starting the parser, however. Consider the code in
+Listing~\ref{lst:p4pp}\todo{p4 syntax would be nice}. These examples show how
+grammatically invalid code may become valid and vice versa, based only on the
+right-hand sides of preprocessor macros.
+
+An important consideration for a correct implementation of preprocessor
+directives is their context-sensitive nature. Expressions for conditional
+inclusion in directives \texttt{\#if}, \texttt{\#elif}, and \texttt{\#ifdef} are
+themselves subject to macro substitution and thus have to be kept in plain text
+or lexeme form until their evaluation.
+
+One more thing to note here is the mechanism of document inclusion. Before
+analysing a \pfs source file (at least to some degree), the full extent of its
+dependencies is unknown and arbitrary. The language has no module system and
+imposes no restriction on the paths a source file can include. This poses a
+challenge for lexeme-level preprocessors, as a file needs to be lexed before it
+can be included. To deal with this, a correct implementation should collect the
+paths a source file can depend on, lex their contents, and include their lexemes
+in the preprocessed lexeme stream. This is of particular note in our
+implementation, as the collection of dependencies reports this dependency set to
+the editor to set up filesystem-level watches. Subsequent edits to the
+dependencies, or even to the dependency set itself, can be processed
+incrementally.
+
+\subsubsection*{Error tolerance}
+
+Error tolerance in the preprocessor means reporting errors and warnings about
+malformed input to the user while continuing to interpret directives in the
+input stream on a best-effort basis. Mistakes in preprocessor directives come in
+several flavours.
+
+The directive itself may be malformed, either due to a typo in its name or a
+problem in some of its arguments. The former case will simply be lexed as an
+unrecognized directive and reported as such. It is possible to suggest fixes for
+common typos to the user. A problem in the directive's argument or arguments
+needs to be resolved based on its meaning. For example, an \texttt{\#include}
+directive could point to a non-existent file, the preprocessor should then
+report this error and proceed as if the file were not included. This is likely
+to lead to further errors down the road, but without knowledge of the referenced
+file's contents, it is the best a preprocessor can do.
+
+Another class of errors is semantic and context-sensitive in nature: a directive
+may be used in the incorrect context or missing where it is expected. For
+example, a user may forget to add an \texttt{\#endif} directive, or include more
+than one \texttt{\#else} directive for a condition. Unfortunately, guessing the
+user's intention when faced with any syntactic or semantic problems in the input
+is a tall order. No guarantees of optimality can be given, as is often the case
+with similar heuristics. In the duplicate \texttt{\#else} problem, the
+preprocessor could be reasonably expected to either skip over the first
+\texttt{\#else}'s body, the second \texttt{\#else}'s body, or assume either of
+the directives was inserted by accident and pretend it is not a part of the
+input stream. We choose to skip the second \texttt{\#else}'s body in our design,
+but other strategies are equally valid\todo{maybe it'd be better to look at some
+data from users. But does this matter enough to bother with a study?}.
+
+\begin{lstlisting}[
+	caption={~\pfs preprocessor example},
+	label=lst:p4pp,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+#define op +
+// #define op 2
+
+#define paren )
+
+header h {
+	bit<1> field;
+}
+
+control pipe(inout h hdr) {
+	Checksum16() ck;
+	apply {
+		// arithmetic expression could be invalid
+		h.field = 1 op 3;
+		// a parse without prior macro substitution would fail
+		ck.clear( paren;
+		// this would parse correctly, but macro substitution
+		// will reveal a parse error
+		ck.update(op);
+	}
+}
+\end{lstlisting}
+
+
+\subsection{The parser}
+
+The next natural step in the pipeline is the act of finding the productions of a
+\pfs grammar that match the preprocessed input program; parsing. While the steps
+up to this point are fairly simplistic and efficient, parsing is a
+resource-intensive process. A language server is expected to provide real-time
+feedback to the developer, including auto-completion suggestions updated with
+every keypress\todo{the lexer can identify a caret inside a (possibly
+unfinished!) comment or string. Maybe we can learn from that for naive
+lexer-based auto-completion?}. Low latency is crucial to the end-user and the
+parser lies on every critical path from user input to high-level results shown
+in the editor's interface. At the same time, a typical \pfs program is likely to
+consist of a long prefix that does not change between edits and a
+user-maintained suffix that changes frequently. This is because a \pfs program
+usually begins with \texttt{\#include} directives referencing platform-specific
+files with constants, error codes, \texttt{extern} definitions and other shared
+code. These constraints and ???\todo{word here} are a very good fit for the
+field of \emph{incremental parsing}.
+
+An incremental parser aims to reuse previously computed information about the
+input in response to small perturbations. Our parser specifically builds on
+incremental packrat parsing\cite{dubroy2017incremental_packrat_parsing}, which
+places few constraints on grammar design and is easy to implement in an
+extensible manner.
+
+
+\subsubsection*{Error tolerance}
+
+Error tolerance in parsing is far more nuanced than in any of the previous
+steps, which is not surprising with regard to the relative complexity of the
+languages that the individual steps recognize and process.

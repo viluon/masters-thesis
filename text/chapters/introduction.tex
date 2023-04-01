@@ -1,0 +1,219 @@
+% Do not forget to include Introduction
+%---------------------------------------------------------------
+% \chapter{Introduction}
+% uncomment the following line to create an unnumbered chapter
+\chapter*{Introduction}\addcontentsline{toc}{chapter}{Introduction}\markboth{Introduction}{Introduction}
+%---------------------------------------------------------------
+
+% The following environment can be used as a mini-introduction for a chapter.
+% Use that any way it pleases you (or comment it out). It can contain, for
+% instance, a summary of the chapter. Or, there can be a quotation.
+\begin{chapterabstract}
+	\todo[inline]{abstract}
+\end{chapterabstract}
+
+\acrfull{p4} is a domain-specific language for programming network switches. It
+became widely popular in \acrfull{sdn} since its introduction in
+2014\cite{p4original}, and has been described as the \emph{natural evolution}
+of OpenFlow, a standard communications protocol for \acrshort{sdn}.
+\acrshort{p4} lets a network engineer specify the data plane\footnote{Also known
+as the ``forwarding plane."} of a router architecture independently of the
+underlying hardware. A \acrshort{p4} compiler can then synthesise microcode for
+a given switch platform and generate library files for the control plane. Unlike
+previous approaches in \acrshort{sdn}, \acrshort{p4} is does not have built-in
+support for common network protocols like TCP, IP, or Ethernet. Instead, the
+language provides protocol-independent constructs that users can leverage in
+order to define arbitrary protocols and instruct a flexible network switch on
+how to handle them.
+
+In 2017, \acrshort{p4} underwent a major redesign\cite{p416} which simplified
+the syntax and removed special-purpose language constructs in favour of more
+general solutions\footnote{Specifically, features like counters and checksum
+units were replaced by \texttt{extern}s, a universal construct for specifying
+additional hardware capabilities not covered by the core \todo[inline]{word
+here?}. The language shrank from over 70 to less than 40
+keywords.\cite{p416:v1:spec:comparison}}. The redesigned language is known as
+\pfs\cite{p416:v123:spec} and its specification has since received more
+incremental updates.
+
+%-------------------------------%
+\section*{A Growing Community}
+%-------------------------------%
+
+\acrshort{p4} gave rise to a varied ecosystem of commercial offerings of both
+hardware and software. It spawned several academic projects that investigated
+its semantics\cite{doenges2021petr4}, allocation to heterogeneous
+hardware\cite{sultana2021flightplan}, open-source network
+testing\cite{antichi2014osnt}, and sketch-based
+monitoring\cite{namkung2022sketchlib}, among many
+others\cite{liatifis2023advancingp4survey}. The \acrfull{onf}
+maintains\cite{p4onf} an open-source reference implementation of a
+\pfs\footnote{Although primarily developed for \pfs since the revision of the
+language, it is also capable of migrating P4\textsubscript{14} programs to \pfs
+or directly compiling them.} compiler frontend and mid\-end, along with several
+backends:
+
+\begin{description}
+	\item[p4c-bm2-ss] Targets a sample software switch for testing purposes.
+	\item[p4c-dpdk] Targets the DPDK software switch (SWX) pipeline\cite{dpdkDPDKRelease}.
+	\item[p4c-ebpf] Generates C code which can be compiled to eBPF
+		and then loaded in the Linux kernel.
+	\item[p4test] A source-to-source P4 translator for testing, learning compiler
+		internals and debugging.
+	\item[p4c-graphs] Generates visual representations of P4 programs.
+	\item[p4c-ubpf] Generates eBPF code that runs in user-space.
+	\item[p4tools] A platform for P4 test utilities, includes a test-case
+		generator for P4 programs.
+\end{description}
+
+All of these components are open source. The frontend and mid\-end of the
+reference compiler provide a foundation for hardware vendors to support
+\acrshort{p4} in their products and serve the community in resolving
+discrepancies between commercial compilers and the language specification.
+
+Despite this growth, \acrshort{p4} has only mediocre support for real-time
+feedback to the programmer -- the vast majority of open and commercial tools
+rely on compiler output to provide semantic insight into a P4
+program\cite{p4insight}, or, as evidenced by the open backends, are parts of the
+compiler proper.\todo{make the case for real-time feedback and better error
+reporting}
+
+%-----------------------------------------%
+\section*{Language Servers to the Rescue}
+%-----------------------------------------%
+
+Over the last decade\todo{poor opening? This should be in another section too},
+\emph{language servers} became a popular architecture\cite{barros2022editing}
+for providing semantically informed editing features in integrated developer
+environments and lightweight source code editors alike. Although examples of
+language server -like tools predate their standardization\cite{bour2018merlin},
+a major milestone in their development was the introduction of the
+\acrfull{lsp}. The support of \acrshort{lsp} in Visual Studio Code seeded an
+ever-growing environment of cross-platform tooling for a variety of programming,
+configuration, specification, and markup languages. Their success can be
+attributed in part to the investment by Microsoft. However, \acrshort{lsp} as a
+standard has much technical merit.
+
+Before the introduction of a common communication interface between
+language-specific tooling and a given source code editor, implementors had to
+create and maintain extensions for any number of different environments, often
+in several programming languages. For example, take an editor plugin providing
+smart completion and "go to definition" features for the Python programming
+language. Suppose the author aims to extend Vim, Emacs, and IntelliJ IDEA. They
+would therefore have to reimplement the given functionality in vimscript, Emacs
+Lisp, and a JVM-based language. Even though recent innovations in classical text
+editors\todo{Neovim} have partly moved away from using their own
+\acrshort{dsl}'s, the author is still burdened with three times the
+implementation work, as every development environment \acrshort{api} is
+different.
+
+The solution to this problem is to split editor extensions according to the
+client-server model. The major implementation work for domain-specific
+functionality resides on the server side, whereas the client is only a
+relatively thin wrapper that adapts a given editor's API. Implementors can build
+many thin clients for different development environments that all connect to the
+same \emph{language server}. \acrshort{lsp}'s raison d'être is support of this
+model in Visual Studio Code.
+
+Coden\-vy, Microsoft, and Red Hat collaborated on standardizing the protocol to
+enable other tools to benefit from shared
+tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
+
+% these comments make the section visible from the editor minimap
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+\section{Outline}
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+%-------------------%
+
+\begin{enumerate}
+	\item (intro) P4 information
+	\item (intro) language servers, VS Code (screenshots, c++?)
+	\item design: overview of the architecture, interfaces with the editor, what
+		needs to be implemented
+	\item subsections about problems that needed solving, but most should go into
+		the design part!
+	\item results, what it can do, open-source repository, performance metrics
+		(aim for interactivity)
+	\item conclusion, next steps
+\end{enumerate}
+
+
+
+
+
+
+
+
+\todo[inline]{authorship: link to GitHub, detail which non-critical parts were
+implemented by a colleague}
+
+
+\begin{lstlisting}[
+	caption={~Useless code},
+	label=list:8-6,
+	captionpos=t,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=C
+]
+	#include<stdio.h>
+	#include<iostream>
+	// A comment
+	int main(void)
+	{
+		printf("Hello World\n");
+		return 0;
+	}
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% alternative using package minted for source highlighting
+% package minted requires execution with `-shell-escape'
+% e.g., `xelatex -shell-escape ctufit-thesis.tex'
+% \begin{listing}
+% \caption{Zbytečný kód}\label{list:8-6}
+% \begin{minted}{C}
+%     #include<stdio.h>
+%     #include<iostream>
+%     // A comment
+%     int main(void)
+%     {
+%         printf("Hello World\n");
+%         return 0;
+%     }
+% \end{minted}
+% \end{listing}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}\centering
+\caption[Příklad tabulky]{~Typesetting math}\label{tab:mathematics}
+\begin{tabular}{l|l|c|c}
+	Typ	& Prostředí	&
+		\LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
+	Text	& \verb|math|	&
+		\verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
+	Displayed	& \verb|displaymath|	&
+		\verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
+\end{tabular}
+\end{table}
