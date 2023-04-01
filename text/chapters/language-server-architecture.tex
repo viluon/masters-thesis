@@ -40,7 +40,7 @@ type-incorrect, and often semantically or even syntactically invalid.
 
 In this chapter, we explore the status quo of language servers, how they differ
 from conventional batch-processing compilers, how this gap may narrow in the
-future, and what makes interactive language tooling difficult.
+future, and what makes building interactive language tooling difficult.
 
 %----------------------------------------%
 \section{The fruits of semantic support}
@@ -270,3 +270,118 @@ respondents.}
 \end{tabular}
 \end{table}
 
+\todo[inline]{the whole thing above is kinda suspicious.
+I'm not sure a comparison like that has a place in a language server thesis.}
+
+%----------------------------------------%
+\section{Lessons from the compiler world}
+%----------------------------------------%
+
+We have previously established how closely does the task of implementing
+language servers relate to writing compilers. Let us expand on the possible
+architectural similarities of the two kinds of language tools in this section.
+
+\subsection{The pipeline}
+
+Traditional compiler architectures build around a pipeline approach. The
+compiler begins with a frontend, typically composed of a lexer\footnote{Although
+the lexer/parser distinction is maintained, partly for historical reasons, in
+many modern compilers, the jobs of lexers and parsers are conceptually
+identical. These compositional algorithms transform input of one type (usually a
+string) into output of another, verifying certain properties along the way.
+Concretely, they match the input against some
+grammar\footnotemark.}\footnotetext{A keen reader will note that without
+restrictions on the \emph{class} of grammars, this statement makes the
+description no more concrete.}, a parser, and a step of semantic analysis. The
+second major part is the backend, a combination of an optimiser and a code
+generator. The lexer ingests bytes of text, turning them into tokens for the
+parser. The parser matches the tokens against the productions of a given
+language's grammar, producing \acrlong{ast}s. Semantic analysis then verifies
+that the parsed program adheres to the language's semantic restrictions. For
+example, semantic analysis ensures that variables can only be referenced after
+their declaration or definition, \texttt{break} statements can only appear in
+the bodies of loops, and the program follows typing rules.
+
+Is it the frontend's responsibility to identify and report user errors,
+terminating the compiler pipeline as soon as it identifies invalid input. This
+is a practical choice, since later stages of the compiler can assume the program
+valid and not worry about possible errors. Furthermore, computation of the
+backend stages would be wasted on invalid input anyway, as the compiler could
+give no guarantees about the produced executable form\footnote{Whether that is
+machine code in a platform-specific executable, bytecode for a virtual machine,
+source code in the case of transpilers, or something else entirely.}.
+
+One important step that typically happens on the frontend/backend boundary is
+\emph{lowering}. This process turns the \acrshort{ast} obtained and validated by
+previous stages into the compiler's \emph{\acrfull{ir}}. The \acrshort{ir}
+represents a simplified language devoid of syntactical sugar and various
+programmer-facing niceties. For example, various types of conditional
+expressions are usually represented by a single \acrshort{ir}
+instruction\footnote{Which may in fact conceptually be an instruction, or a node
+of the \acrshort{ir} graph.}. Similarly, different forms of loops lower to a few
+canonical translations. Freedoms in the source-level code style are eliminated
+to make reasoning about the program further down the pipeline easier. Nested
+expressions are flattened using short-lived local variables, often imposing an
+evaluation order. Overall, \acrlong{ir}s tend to be semantically closer to the
+target architecture.
+
+After lowering, the backend takes over. The optimizer, if it is involved in the
+compilation, iteratively transforms the \acrshort{ir} in a series of analysis
+and rewriting steps that attempt to minimise certain cost functions\footnote{The
+actual cost functions may vary based on what steps the optimizer takes. For
+example, the metrics used for inlining can differ from heuristics consulted for
+loop-invariant code motion.}. Optimization can sometimes cross the boundaries of
+source-level code. That is, certain \acrshort{ir} programs do not have a
+corresponding source program, because the lowering phase is not a surjective
+mapping. This is a necessary freedom for eliminating overhead in implementations
+of high-level programming languages, but makes mapping issues in the final
+executable more difficult\footnote{Which is of major concern for debugging, and
+consequently one of the primary reasons why native executable debuggers tend to
+operate better on programs compiled with fewer optimizations.}.
+
+Finally, the pipeline terminates in a code generation phase which emits the
+final executable form. This step requires rewriting the \acrshort{ir} program in
+order to fit the target constraints. The amount of work the compiler needs to do
+in this last stage depends on the semantic differences between the structure of
+the \acrlong{ir} and the target language. It could be as simple as writing the
+\acrshort{ir} to an output file, if the intermediate and target languages
+perfectly match. For conventional processor targets, however, code generation
+necessitates at least instruction selection and register allocation, as well as
+maintaining some level of conformance to standard calling conventions.
+
+\subsubsection*{Born of necessity, sculpted for collaboration}
+
+\todo[inline]{Figure out where did the pipeline design come from, how GCC
+popularised it (I swear I heard that somewhere)}
+
+\subsubsection*{Where the pipeline falls short}
+
+In recent years, the feedback loop from writing code to executing it has gotten
+shorter and shorter. The case for early feedback is simple: programmers want
+results as soon as possible. Moreover, since the programmer typically uses the
+compiler in an online fashion, changes to the source files tend to be small and
+local. Compiling small changes in the source program often only requires small
+changes to the output. With proper caching, most information can be reused from
+previous runs of the compiler.
+
+With semantic language support receiving more and more attention, the overlap
+between compilers and interactive language tooling is only getting clearer. Both
+classes of programs now need to maintain and incrementally update databases of
+semantic information about the codebase in order to respond quickly to user
+requests. With semantic information at hand, it is only natural for both classes
+to integrate tightly with editors and development environments to provide
+features reliant on high-level information. Both compilers and language servers
+should be resilient to errors in the user input and continue processing as far
+as is practical, for example to report semantic errors even in the presence of
+syntactical issues. Just as with optimizers\todo{make sure we reference the
+previous subsubsection here correctly}, reimplementing a lot of complicated
+functionality is tiresome and unnecessary.
+
+Unfortunately, the well-established pipeline approach to compiler construction
+is, despite its many innovations, difficult to adapt to the modern incremental
+workloads. The interfaces between stages do not share a principled, universal
+structure, requiring each phase to implement its own variant of caching and
+cache-invalidation. Running phases concurrently for independent sections of the
+input program can be problematic, because pipeline-based compilers often rely on
+global variables\footnote{This is no fault of the architecture as a whole, but
+it is an important practical consideration.}.
