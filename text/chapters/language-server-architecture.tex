@@ -382,6 +382,71 @@ is, despite its many innovations, difficult to adapt to the modern incremental
 workloads. The interfaces between stages do not share a principled, universal
 structure, requiring each phase to implement its own variant of caching and
 cache-invalidation. Running phases concurrently for independent sections of the
-input program can be problematic, because pipeline-based compilers often rely on
-global variables\footnote{This is no fault of the architecture as a whole, but
-it is an important practical consideration.}.
+input program can be problematic, because older pipeline-based compilers often
+rely on global variables\footnote{This is no fault of the architecture as a
+whole, but it is an important practical consideration.}.
+
+Conventional incremental compilers choose a granularity of input file,
+compilation unit, or module, and often run several pipelines in parallel,
+culminating in a sequential step that combines the constituent products into the
+final executable. This approach achieves very short compilation and
+recompilation times for many programs, but tends to produce suboptimal code,
+since the optimiser can only see a subset of the code and is limited in
+attempting whole-program optimisation and cross-module inlining. Nowadays,
+linkers (the usual last step in the production of executables) counter this
+downside with \acrfull{lto}, trading linking time for better quality code.
+Running many pipelines in parallel also tends to increase the size of the
+intermediate compilation artifacts, because dead code elimination cannot safely
+remove unused definitions, possibly referenced by other compilation units.
+
+\subsection{The pipeline as a sequence of queries}
+
+With these new developments and performance constraints in mind, recent compiler
+construction techniques put incremental computation at the centre of their
+design. For example, Roslyn\footnote{This product is officially called \emph{The
+.NET Compiler Platform SDK} but it is arguably better known under the Roslyn
+codename.}, a collection of compilers and analysers for C\# and Visual Basic,
+builds heavily on incremental computation. A Roslyn compiler takes centre stage
+in a number of interactive and batch applications, maintaining a semantic model
+of the codebase. Higher-level tools then query and update this model via several
+\acrshort{api}s designed for static analysis, code refactoring, and other
+use-cases\cite{roslyn_apis}\todo{what are some concrete applications that build
+on these?}. The entire stack is optimised for interactive use. For example, the
+parsers utilise a combination of persistent ``green'' \acrlong{ast}s and
+transient ``red'' trees. The second, ephemeral type is built on-demand,
+optimised for querying, and discarded with edits\cite{roslyn_red_green_trees},
+while the ``green'' tree serves as the source of truth.
+
+As more and more language tools interact with and rely on the compiler, compiler
+authors find themselves adapting the pipelined architecture to emit additional
+intermediate artifacts. If this evolution happens organically over long periods
+of time and without a methodical approach, compiler codebases can degenerate
+into clouds of complex, intertwined code.
+
+A possible remedy is to adapt the pipeline architecture in ways that make it
+simple to incrementalise and memoize its stages. The key insight is that the
+pipeline is conceptually a collection of data-dependent queries. If we express
+the compiler in the language of a general query engine, caching and incremental
+computation features come for free. Propagating changes through the data
+dependency graph is simple, and this change processing subsumes cache
+invalidation. The interfaces between compiler queries effectively become
+high-level \acrshort{api}s, with little extra work. These interfaces are shared
+with other applications, making integration simpler and less error-prone than in
+many traditional pipeline architectures, which maintain separate sets of
+internal and external interfaces.
+
+\subsubsection*{A functional approach}
+
+Even though the traditional pipeline and its query-based reimagination are
+conceptually close, their implementations are vastly different. Typical
+compilers mutate global state during the course of a compilation. If any stages
+produce additional data, they populate maps and tables stored in some global
+state for further passes to use. This can lead to subtle compiler bugs when
+compiler passes are added, removed, or reordered. Mutable state is also an
+obstacle to parallelism and makes it difficult to reason about where exactly in
+the pipeline does one intermediate form change into another.
+
+On the other hand, the query-based approach is inherently functional. Compiler
+passes are ordered by their data dependencies and the amount of available
+parallelism is limited only by the number of independent queries at a given
+stage.
