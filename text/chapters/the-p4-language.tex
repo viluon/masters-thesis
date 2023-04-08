@@ -473,25 +473,27 @@ control block. The declaration lists various properties of the table, given as
 key-value pairs. It has at least the mandatory \texttt{key} and \texttt{actions}
 properties, which specify an expression used for computing the lookup key and
 the set of actions the table can invoke, respectively. A table declaration can
-optionally also include \texttt{default\_action} and/or \texttt{size}
-properties, which specify the action invoked when no other actions
+optionally also include \texttt{default\_action}, \texttt{entries}, and/or
+\texttt{size} properties, which specify the action invoked when no other actions
 match\footnote{The \texttt{default\_action} property defaults to the built-in
-\texttt{NoAction} when not specified.}, and the desired size for the table.
-Compilers can choose to extend this standard set of properties with additional
-target-specific key-value pairs.
+\texttt{NoAction} when not specified.}, a predefined set of entries for the
+table, and the desired size for the table. Compilers can choose to extend this
+standard set of properties with additional target-specific key-value pairs.
 
 The programmer can optionally declare table properties as \texttt{const}. This
 keyword ensures that the control plane cannot change the property's value at
 runtime. Somewhat confusingly, some properties are implicitly \texttt{const},
 including the standard properties \texttt{key}, \texttt{actions}, and
-\texttt{size}.
+\texttt{size}. On these, the \texttt{const} keyword has no effect.
 
 \todo[inline]{some sort of heading for keys here}
 
-The \texttt{key} table property specifies the scrutinee of pattern-matching.
-Grammatically, the key is a sequence of rows where each row contains the
-expression to match on, the kind of matching to perform, and a list of
-optional annotations.
+\begin{description}
+
+\item[\texttt{key}] The \texttt{key} table property specifies the scrutinee of
+pattern-matching. Grammatically, the key is a sequence of rows where each row
+contains the expression to match on, the kind of matching to perform, and a list
+of optional annotations.
 
 The possible kinds of pattern-matching are \texttt{exact}, \texttt{ternary}, and
 \texttt{lpm}, all defined as part of the \texttt{match\_kind}
@@ -501,12 +503,12 @@ on the compiler and target architecture. Key elements can be named with optional
 \texttt{@name} annotations to give them readable names in the control plane
 \acrshort{api}.
 
-The \texttt{actions} table property lists all the actions that the table can
-invoke at runtime, separated by semicolons.
+\item[\texttt{actions}] The \texttt{actions} table property lists all the
+actions a table can invoke at runtime, separated by semicolons.
 
-Regarding scoping, action names of actions in the \texttt{actions} list have to
-be distinct. That is, two actions of the same name cannot appear in the
-\texttt{actions} list, even if they come from different scopes and could be
+The specification mandates that action names of actions in the \texttt{actions}
+list have to be distinct. That is, two actions of the same name cannot appear in
+the \texttt{actions} list, even if they come from different scopes and could be
 disambiguated with fully qualified paths in different contexts.
 
 An overview of the valid and illegal usages of the \texttt{actions} table
@@ -547,15 +549,39 @@ table t {
 }
 \end{lstlisting}
 
-The \texttt{default\_action} table property specifies the action invoked when no
-other actions match. The value of this property is an expression that invokes
-the action in question, binding parameters with directions similarly to an
-\texttt{actions} list entry. It introduces an interesting redundancy in the \pfs
-language, since the programmer needs to also include the default action in the
-\texttt{actions} list. Moreover, the default action and the entry in the list
-have to be syntactically identical, except for the directionless parameters.
-Since there is no action data for the default action at runtime, the
-\texttt{default\_action} property has to specify them all.
+\item[\texttt{default\_action}] The \texttt{default\_action} table property
+specifies the action invoked when no other actions match. The value of this
+property is an expression that invokes the action in question, binding
+parameters with directions similarly to an \texttt{actions} list entry. It
+introduces an interesting redundancy in the \pfs language, since the programmer
+needs to also include the default action in the \texttt{actions} list. Moreover,
+the default action and the entry in the list have to be syntactically identical,
+except for the directionless parameters. Since there is no action data for the
+default action at runtime, the \texttt{default\_action} property has to specify
+them all. The directionless parameters are evaluated at compile time.
+
+A table without a \texttt{default\_action} property that does not match a given
+packet has no impact on packet processing, it is effectively skipped.
+
+\item[\texttt{entries}] The optional \texttt{entries} property preconfigures a
+table's entries. This can serve to either initialize the table or, with the help
+of \texttt{const}, to turn it into a static construct that cannot be modified on
+the control plane side.
+
+\item[\texttt{size}] The optional \texttt{size} property indicates the number of
+table entries the table should support at runtime. It is a compile-time known
+integer. The interpretation of \texttt{size} depends largely on details of the
+target architecture, casting some doubt on why it was included in the core
+language. Some targets may require every table to specify a size, others may use
+it merely as a hint during dynamic resource allocation, others still may
+guarantee that a successfully compiled table can fit at least \texttt{size}
+entries. In general, none of these are the case.
+
+\end{description}
+
+Tables can specify additional properties outside of the base set provided by the
+\pfs specification\footnote{The specification lists several motivated
+examples.}.
 
 \subsection{Semantics}
 
