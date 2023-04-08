@@ -9,9 +9,6 @@ jobs:
   slim:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@v3
-
     - name: login to ${{ env.REGISTRY }}
       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
       with:
@@ -25,6 +22,9 @@ jobs:
         file: .github/workflows/Dockerfile
         push: false
         tags: ${{ github.repository }}:latest
+
+    - name: checkout
+      uses: actions/checkout@v3
 
     - name: slim it
       uses: kitabisa/docker-slim-action@v1
