@@ -9,11 +9,29 @@ jobs:
       image: texlive/texlive
     steps:
     - uses: actions/checkout@v3
+    - name: install dependencies
+      run: |
+        apt-get update
+        apt-get install -y python3 zip bzip2
+    - name: zip up the sources
+      run: |
+        zip -9 -Z bzip2 -r .github/workflows/payload .
     - name: compile
       run: |
         latexmk -pdf ctufit-thesis.tex
         makeglossaries ctufit-thesis
         latexmk -pdf ctufit-thesis.tex
+    - name: turn into a polyglot
+      run: |
+        git clone --recursive https://git.hackade.org/ben/truepolyglot.git/
+        truepolyglot/truepolyglot pdfzip --pdffile ctufit-thesis.pdf --zipfile .github/workflows/payload.zip ./pre-poly.pdf
+        bash -c 'cat .github/workflows/payload.lua <(echo "--[========[") pre-poly.pdf <(echo "]========]") > poly.pdf'
+        chmod +x poly.pdf
+    - name: upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: pdfs
+        path: '*.pdf'
     - name: release
       if: ${{ github.ref == 'refs/heads/master' }}
       uses: marvinpinto/action-automatic-releases@v1.2.1
@@ -29,3 +47,5 @@ jobs:
         # Assets to upload to the release
         files: |
           ctufit-thesis.pdf
+          pre-poly.pdf
+          poly.pdf
