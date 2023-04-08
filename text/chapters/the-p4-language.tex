@@ -71,7 +71,8 @@ architectures and operating systems, such as x86 and Linux. A software switch
 represents the peak of flexibility, programmability, and requires no special
 hardware other than what is already commonly present in conventional computers.
 Purely software-based solutions cannot compete in energy efficiency with any of
-the other approaches, but are useful for testing and in small-scale networks.
+the other approaches, but are often useful for testing and in small-scale
+networks.
 
 \begin{figure}[t]
 	\includegraphics[
@@ -404,6 +405,7 @@ extern void verify(in bool condition, in error err);
 	\end{tikzpicture}
 	\caption{An abstract overview of a \acrshort{p4} parser. The states inside
 	the grey circle are accessible to user code.}
+	\todo[inline]{add a loop}
 	\label{fig:parser-overview}
 \end{figure}
 
@@ -425,6 +427,135 @@ bit<32> max(in bit<32> left, in bit<32> right) {
 
 \todo[inline]{subparsers, header stacks}
 
+\todo[inline]{we should really reorganise this to use bigger headings, this way
+the individual constructs are lost in the text!}
+
+While parsers execute at the very frontier of the pipeline, the bulk of packet
+processing happens in match-action units\todo{previously mentioned?}.
+\acrshort{p4} has another parametrized construct for expressing entire sequences
+of pattern-matching and rewriting steps: \texttt{control} blocks\todo{Add an
+example control block listing}.
+
+A control block has a name and can take type and value parameters. The body of a
+control block begins with declarations of constants, variables, and
+instantiations. It follows with definitions of \emph{\texttt{action}s}.
+
+A \acrshort{p4} action\todo{example listing} is a piece of code that directly
+manipulates packet headers. At a first glance, actions should be immediately
+familiar to imperative programmers, since they resemble functions with no return
+value. Their bodies are each comprised of a series of statements. These are
+executed sequentially\footnote{At least from the perspective of the
+programmer.}. There are two important restrictions on action parameter lists.
+
+\begin{enumerate}
+	\item Parameters with no direction must all come at the end of the parameter
+	list. These directionless parameters indicate \emph{action
+	data}\todo{explain what that is}.
+	\item Action parameters cannot have \texttt{extern} types.
+\end{enumerate}
+
+The second major \acrshort{p4} construct that appears exclusively\todo{right?}
+within control blocks are \emph{tables}. Whereas an action specifies the
+operations performed on packet headers when pattern-matching succeeds, a table
+informs a match-action unit of the target how to perform the pattern-matching
+and what actions to invoke.
+
+Functional programmers will note that tables and actions together seem like a
+low-level decomposition of pattern-matching from Haskell or Scala. This is a
+good analogy, except that, whereas pattern-matching constructs in a programming
+language are typically fixed at compilation time, \acrshort{p4} tables are
+configurable at runtime by the control plane. Furthermore, \acrshort{p4}'s
+pattern-matching operates at the bit level and offers certain string-like
+facilities.\todo{this whole thing should be like an aside or something}
+
+A \texttt{table} declaration is simultaneously an instantiation in the enclosing
+control block. The declaration lists various properties of the table, given as
+key-value pairs. It has at least the mandatory \texttt{key} and \texttt{actions}
+properties, which specify an expression used for computing the lookup key and
+the set of actions the table can invoke, respectively. A table declaration can
+optionally also include \texttt{default\_action} and/or \texttt{size}
+properties, which specify the action invoked when no other actions
+match\footnote{The \texttt{default\_action} property defaults to the built-in
+\texttt{NoAction} when not specified.}, and the desired size for the table.
+Compilers can choose to extend this standard set of properties with additional
+target-specific key-value pairs.
+
+The programmer can optionally declare table properties as \texttt{const}. This
+keyword ensures that the control plane cannot change the property's value at
+runtime. Somewhat confusingly, some properties are implicitly \texttt{const},
+including the standard properties \texttt{key}, \texttt{actions}, and
+\texttt{size}.
+
+\todo[inline]{some sort of heading for keys here}
+
+The \texttt{key} table property specifies the scrutinee of pattern-matching.
+Grammatically, the key is a sequence of rows where each row contains the
+expression to match on, the kind of matching to perform, and a list of
+optional annotations.
+
+The possible kinds of pattern-matching are \texttt{exact}, \texttt{ternary}, and
+\texttt{lpm}, all defined as part of the \texttt{match\_kind}
+enumeration\todo{is it an enum?} in the core library\todo{do we discuss that
+prior to this point?}. The semantics of these options is not given, it depends
+on the compiler and target architecture. Key elements can be named with optional
+\texttt{@name} annotations to give them readable names in the control plane
+\acrshort{api}.
+
+The \texttt{actions} table property lists all the actions that the table can
+invoke at runtime, separated by semicolons.
+
+Regarding scoping, action names of actions in the \texttt{actions} list have to
+be distinct. That is, two actions of the same name cannot appear in the
+\texttt{actions} list, even if they come from different scopes and could be
+disambiguated with fully qualified paths in different contexts.
+
+An overview of the valid and illegal usages of the \texttt{actions} table
+property is given in Listing~\ref{lst:p4-table-actions}. The examples highlight
+the distinction of action parameters with and without direction. The
+directionless parameters, also known as \emph{action data}, are used to
+communicate data between the control plane and the data plane at runtime, and
+therefore cannot be bound in the \acrshort{p4} program. Haskell enthusiasts may
+note that the distinction between compile time and runtime -bound values is
+somewhat reminiscent of second-class functions.
+
+\begin{lstlisting}[
+	caption={~Use of the \texttt{actions} table property in \pfs.},
+	label=lst:p4-table-actions,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+action a(in bit<32> x) { /* body omitted */ }
+bit<32> z;
+action b(inout bit<32> x, bit<8> data) { /* body omitted */ }
+table t {
+	actions = {
+		// a;
+		//  - illegal, x parameter must be bound
+		a(5);  // binding a's parameter x to 5
+		b(z);  // binding b's parameter x to z
+		// b(z, 3);
+		//      - illegal, cannot bind directionless data parameter
+		// b();
+		//  -- illegal, x parameter must be bound
+		// a(table2.apply().hit ? 5 : 3);
+		//   -------------- illegal, cannot apply a table here
+	}
+}
+\end{lstlisting}
+
+The \texttt{default\_action} table property specifies the action invoked when no
+other actions match. The value of this property is an expression that invokes
+the action in question, binding parameters with directions similarly to an
+\texttt{actions} list entry. It introduces an interesting redundancy in the \pfs
+language, since the programmer needs to also include the default action in the
+\texttt{actions} list. Moreover, the default action and the entry in the list
+have to be syntactically identical, except for the directionless parameters.
+Since there is no action data for the default action at runtime, the
+\texttt{default\_action} property has to specify them all.
 
 \subsection{Semantics}
 
@@ -510,3 +641,11 @@ is ultimately motivated by the need to control the side effects of
 \texttt{extern} functions and methods, which are arbitrarily powerful. The copy
 in / copy out calling convention lets compilers reason about programs in the
 presence of \texttt{extern}s.
+
+\subsubsection*{Control blocks}
+
+Invoking actions: actions can be invoked either implicitly or explicitly.
+Implicit invocations come from tables during match-action processing. Explicit
+invocations are calls from \texttt{control} blocks or other \texttt{action}s. In
+the explicit invocation case, directionless parameters follow \texttt{in}
+parameter semantics.

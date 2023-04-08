@@ -18,5 +18,8 @@
         "titleBar.inactiveBackground": "#1c57a599",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.remoteColor": "1c57a5"
+    "peacock.remoteColor": "1c57a5",
+    "[latex]": {
+        "editor.wordWrap": "wordWrapColumn",
+    }
 }
