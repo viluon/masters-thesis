@@ -1,0 +1,39 @@
+name: Docker container
+on: workflow_dispatch
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  slim:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: login to ${{ env.REGISTRY }}
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: build a docker container
+      uses: docker/build-push-action@v4
+      with:
+        file: .github/workflows/Dockerfile
+        push: false
+        tags: ${{ github.repository }}:latest
+
+    - name: slim it
+      uses: kitabisa/docker-slim-action@v1
+      env:
+        DSLIM_HTTP_PROBE: false
+        DSLIM_HOST_EXEC_FILE: .github/workflows/build.sh
+      with:
+        target: ${{ github.repository }}:latest
+        tag: "slim"
+
+    - name: push to the registry
+      run: docker image push "${{ github.repository }}" --all-tags
