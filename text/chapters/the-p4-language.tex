@@ -90,8 +90,17 @@ the original \acrshort{p4} paper defines the target-independent \emph{abstract
 forwarding model}, outlined in Figure~\ref{fig:abstract-forwarding-model}. This
 model assumes an end-to-end pipeline split into \emph{ingress} and \emph{egress}
 parts. An arriving packet is first parsed to recognize the headers present
-therein. The model assumes that the payload is handled separately by the device
-and is not available for pattern-matching.
+therein. These headers then travel through the pipeline's \emph{match-action
+units}. A match-action unit performs limited pattern-matching and rewriting on
+the parsed packet header. This part of the pipeline is partially configured at
+runtime by the control plane. Forwarding rules defined in software are uploaded
+to the network device.
+
+\todo[inline]{all this needs a much better explanation! it's crucial for
+understanding the P4 way of doing things.}
+
+The model assumes that the payload is handled separately by the device and is
+not available for pattern-matching.
 
 \todo[inline]{finish the model description, mention deparsers, explain metadata}
 
@@ -123,11 +132,11 @@ maximum runtime of a program statically.
 
 \todo[inline]{in discussing the subpar nature of the spec, include examples of
 	mistakes.
-	\href{https://p4.org/p4-spec/docs/P4-16-v-1.2.3.html\#sec-minsizeinbits}{compile-time
-	size determination} mentions ``\emph{Each of these method calls evaluate to
-	compile-time known values that return the minimum size in bits required to
-	store the expression,}'' clearly forgetting to take the \texttt{maxSize*}
-	functions into account}
+	\href{https://p4.org/p4-spec/docs/P4-16-v-1.2.3.html\#sec-minsizeinbits}
+	{compile-time size determination} mentions ``\emph{Each of these method
+	calls evaluate to compile-time known values that return the minimum size in
+	bits required to store the expression,}'' clearly forgetting to take the
+	\texttt{maxSize*} functions into account}
 
 \subsection{Syntax}
 

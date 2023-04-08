@@ -13,25 +13,25 @@
 \end{chapterabstract}
 
 \acrfull{p4} is a domain-specific language for programming network switches. It
-became widely popular in \acrfull{sdn} since its introduction in
-2014\cite{p4original}, and has been described as the \emph{natural evolution}
-of OpenFlow, a standard communications protocol for \acrshort{sdn}.
-\acrshort{p4} lets a network engineer specify the data plane\footnote{Also known
+became widely popular in the field of \acrfull{sdn} since its introduction in
+2014\cite{p4original}. \acrshort{p4} has been described as the \emph{natural
+evolution} of OpenFlow, a standard communications protocol for \acrshort{sdn}.
+The language lets a network engineer specify the data plane\footnote{Also known
 as the ``forwarding plane."} of a router architecture independently of the
 underlying hardware. A \acrshort{p4} compiler can then synthesise microcode for
-a given switch platform and generate library files for the control plane. Unlike
-previous approaches in \acrshort{sdn}, \acrshort{p4} is does not have built-in
-support for common network protocols like TCP, IP, or Ethernet. Instead, the
-language provides protocol-independent constructs that users can leverage in
-order to define arbitrary protocols and instruct a flexible network switch on
-how to handle them.
+a given switch\todo{not just for switches!} platform and generate library files
+for the control plane. Unlike previous approaches in \acrshort{sdn},
+\acrshort{p4} is does not have built-in support for common network protocols
+like TCP, IP, or Ethernet. Instead, the language provides protocol-independent
+constructs that users can leverage in order to define arbitrary protocols and
+instruct a flexible network switch on how to handle them.
 
 In 2017, \acrshort{p4} underwent a major redesign\cite{p416} which simplified
 the syntax and removed special-purpose language constructs in favour of more
 general solutions\footnote{Specifically, features like counters and checksum
 units were replaced by \texttt{extern}s, a universal construct for specifying
-additional hardware capabilities not covered by the core \todo[inline]{word
-here?}. The language shrank from over 70 to less than 40
+additional hardware capabilities not explicitly covered by the core syntax. The
+language shrank from over 70 to less than 40
 keywords.\cite{p416:v1:spec:comparison}}. The redesigned language is known as
 \pfs\cite{p416:v123:spec} and its specification has since received more
 incremental updates.
@@ -75,7 +75,17 @@ Despite this growth, \acrshort{p4} has only mediocre support for real-time
 feedback to the programmer -- the vast majority of open and commercial tools
 rely on compiler output to provide semantic insight into a P4
 program\cite{p4insight}, or, as evidenced by the open backends, are parts of the
-compiler proper.\todo{make the case for real-time feedback and better error
+compiler proper. This is a problem, because the compiler was not designed for
+interactive use. Compilations of complex programs can take over an hour to
+complete. Long feedback loops hamper development. What's more, information
+provided by the compiler frontend is very limited. The compiler typically
+reports at most one error message and provides very few explanations. The lack
+of an integration between the compiler and development environments is an
+obstacle to new users. Even just an ergonomic presentation of diagnostics would
+be a large improvement. We can do far better, as interactive editing support for
+conventional programming languages clearly demonstrates.
+
+\todo{make the case for real-time feedback and better error
 reporting}
 
 %-----------------------------------------%

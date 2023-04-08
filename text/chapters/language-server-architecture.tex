@@ -440,13 +440,33 @@ internal and external interfaces.
 Even though the traditional pipeline and its query-based reimagination are
 conceptually close, their implementations are vastly different. Typical
 compilers mutate global state during the course of a compilation. If any stages
-produce additional data, they populate maps and tables stored in some global
-state for further passes to use. This can lead to subtle compiler bugs when
-compiler passes are added, removed, or reordered. Mutable state is also an
-obstacle to parallelism and makes it difficult to reason about where exactly in
-the pipeline does one intermediate form change into another.
+produce additional data, they populate additional global maps and tables for
+further passes to use. This can lead to subtle compiler bugs when compiler
+passes are added, removed, or reordered. Mutable state is also an obstacle to
+parallelism and makes it difficult to reason about where exactly in the pipeline
+does one intermediate form change into another.
 
 On the other hand, the query-based approach is inherently functional. Compiler
 passes are ordered by their data dependencies and the amount of available
 parallelism is limited only by the number of independent queries at a given
-stage.
+stage. A query-based compiler should avoid using mutable state, so that the
+query engine can correctly propagate changes and update memoized
+functions\footnote{Some hidden mutability may still be beneficial for
+performance optimisations. For example, a hidden mutable map can serve as a
+backing store for string interning. Naturally, the programmer needs to be
+vigilant around any such places in the implementation and verify that the
+introduced side-effects do not compromise correctness of the entire system.}.
+
+\subsubsection*{Queries in the wild}
+
+The Rust compiler was not originally built around a query system, but one has
+been retrofitted into it, and major parts of its pipeline between
+\texttt{rustc}'s high-level \acrshort{ir} and \acrshort{llvm} \acrshort{ir} are
+now implemented as incremental interdependent queries.\todo{reference}
+
+The Roslyn project\todo{add information from the GitHub discussions thread, once
+available.}
+
+\todo[inline]{include citations of the Sixten compiler, the rock library that
+supports Sixten, the talk by Anders, and \texttt{rustc} queries. Also, build
+systems a la carte, perhaps?}
