@@ -4,9 +4,18 @@ on: push
 
 jobs:
   pdfLaTeX:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - docker-tag: latest
+            experimental: false
+          - docker-tag: slim
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
     runs-on: ubuntu-latest
     container:
-      image: texlive/texlive
+      image: ghcr.io/viluon/masters-thesis:${{ matrix.docker-tag }}
     steps:
     - uses: actions/checkout@v3
     - name: install dependencies
@@ -38,7 +47,7 @@ jobs:
         name: pdfs
         path: '*.pdf'
     - name: release
-      if: ${{ github.ref == 'refs/heads/master' }}
+      if: ${{ github.ref == 'refs/heads/master' && !matrix.experimental }}
       uses: marvinpinto/action-automatic-releases@v1.2.1
       with:
         # GitHub secret token
