@@ -21,7 +21,7 @@ jobs:
       with:
         file: .github/workflows/Dockerfile
         push: false
-        tags: ${{ github.repository }}:latest
+        tags: ${{ env.REGISTRY }}/${{ github.repository }}:latest
 
     - name: checkout
       uses: actions/checkout@v3
@@ -30,10 +30,26 @@ jobs:
       uses: kitabisa/docker-slim-action@v1
       env:
         DSLIM_HTTP_PROBE: false
-        DSLIM_HOST_EXEC_FILE: .github/workflows/build.sh
+        DSLIM_RC_EXE: |
+          apt-get update;
+          apt-get install -y python3 zip bzip2 wget;
+          zip -9 -Z bzip2 -r -x '.git/*' @ .github/workflows/payload .;
+          latexmk -pdf ctufit-thesis.tex;
+          makeglossaries ctufit-thesis;
+          latexmk -pdf ctufit-thesis.tex;
+          git clone --recursive --depth 1 --branch lua-script-hack https://github.com/viluon/truepolyglot.git;
+          truepolyglot/truepolyglot pdfzip \
+              --pdffile ctufit-thesis.pdf \
+              --luafile .github/workflows/payload.lua \
+              --zipfile .github/workflows/payload.zip \
+              ./poly.pdf;
+          chmod +x poly.pdf;
+          wget https://www.nayuki.io/res/forcing-a-files-crc-to-any-value/forcecrc32.py;
+          python3 forcecrc32.py poly.pdf 241 cafebabe;
+
       with:
-        target: ${{ github.repository }}:latest
+        target: ${{ env.REGISTRY }}/${{ github.repository }}:latest
         tag: "slim"
 
     - name: push to the registry
-      run: docker image push "${{ github.repository }}" --all-tags
+      run: docker image push "${{ env.REGISTRY }}/${{ github.repository }}" --all-tags
