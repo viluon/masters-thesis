@@ -32,11 +32,74 @@ jobs:
       run: |
         zip -9 -Z bzip2 -r -x '.git/*' @ .github/workflows/payload .
 
+    - name: restore cache
+      uses: actions/cache/restore@v3
+      id: cache-restore
+      with:
+        path: |
+          _minted-ctufit-thesis/
+          *.acn
+          *.aux
+          *.bbl
+          *.bcf
+          *.blg
+          *.dvi
+          *.fdb_latexmk
+          *.fls
+          *.glo
+          *.glsdefs
+          *.ist
+          *.lof
+          *.log
+          *.lol
+          *.lot
+          *.out
+          *.pdf
+          *.ps
+          *.run.xml
+          *.synctex.gz
+          *.synctex(busy)
+          *.tdo
+          *.toc
+          *.upa
+        key: ${{ runner.os }}-tex-cache
+
     - name: compile
       run: |
         latexmk -pdf ctufit-thesis.tex
         makeglossaries ctufit-thesis
         latexmk -pdf ctufit-thesis.tex
+
+    - name: save cache
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          _minted-ctufit-thesis/
+          *.acn
+          *.aux
+          *.bbl
+          *.bcf
+          *.blg
+          *.dvi
+          *.fdb_latexmk
+          *.fls
+          *.glo
+          *.glsdefs
+          *.ist
+          *.lof
+          *.log
+          *.lol
+          *.lot
+          *.out
+          *.pdf
+          *.ps
+          *.run.xml
+          *.synctex.gz
+          *.synctex(busy)
+          *.tdo
+          *.toc
+          *.upa
+        key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
     - name: turn into a polyglot
       run: |
