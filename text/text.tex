@@ -20,6 +20,17 @@
 \newacronym{yacc}{YACC}{Yet Another Compiler-Compiler}
 \newcommand{\pfs}{\texorpdfstring{{P}4\textsubscript{16}}{P4 16} }
 
+\lstdefinelanguage{p4}{
+	keywords={abstract,action,apply,bit,bool,const,control,default,else,enum,
+	error,extern,exit,false,header,header_union,if,in,inout,int,match_kind,
+	package,parser,out,return,select,state,struct,switch,table,this,transition,
+	true,tuple,type,typedef,value_set,varbit,verify,void},
+	sensitive=true,
+	morecomment=[l]{//},
+	morecomment=[s]{/*}{*/},
+	morestring=[b]",
+}
+
 \include{text/chapters/introduction}
 \include{text/chapters/the-p4-language}
 \include{text/chapters/language-server-architecture}

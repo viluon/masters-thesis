@@ -501,9 +501,30 @@
 	\@ifpackageloaded{listings}{%
 		\DeclareRobustCommand{\lstlistingname}{\thectufitlistinglabel}%
 		\DeclareRobustCommand{\lstlistlistingname}{\thectufitlollabel}%
-		\lstset{basicstyle=\small\ttfamily,keywordstyle=\bfseries,%
-				backgroundcolor=\color{backgroundgray},%
-				frame=single,framerule=0pt,xleftmargin=\fboxsep,xrightmargin=\fboxsep}%
+		\lstset{
+			basicstyle=\small\ttfamily,%
+			keywordstyle=\bfseries,%
+			% backgroundcolor=\color{backgroundgray},%
+			frame=single,%
+			framerule=0.5pt,%
+			xleftmargin=\fboxsep,%
+			xrightmargin=\fboxsep,%
+			keywordstyle=\bfseries\color{purple!40!black},%
+			commentstyle=\itshape\color{green!40!black},%
+			literate=% TODO: switch to minted, this is madness
+				*{0}{{{\color{blue}0}}}1
+				{1}{{{\color{blue}1}}}1
+				{2}{{{\color{blue}2}}}1
+				{3}{{{\color{blue}3}}}1
+				{4}{{{\color{blue}4}}}1
+				{5}{{{\color{blue}5}}}1
+				{6}{{{\color{blue}6}}}1
+				{7}{{{\color{blue}7}}}1
+				{8}{{{\color{blue}8}}}1
+				{9}{{{\color{blue}9}}}1,
+			identifierstyle=\color{black},%
+			stringstyle=\color{orange},%
+		}%
 	}{}%
 	\@ifpackageloaded{minted}{%
 		\DeclareRobustCommand{\listingscaption}{\thectufitlistinglabel}%
