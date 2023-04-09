@@ -118,11 +118,12 @@ indicated by mutating metadata.
 	\label{fig:arch-model}
 \end{figure}
 
-\acrshort{p4} is not a programming language for von Neumann architectures. The
-abstract model assumes the target machine to be some sort of network processor
-with programmable blocks embedded in a static pipeline.
-Figure~\ref{fig:arch-model} illustrates such a machine and highlights the
-interfaces of the \acrshort{p4} program.
+\acrshort{p4} is not a programming language for von Neumann
+architectures\todo{starting with a negative example is poor taste}. The abstract
+model assumes the target machine to be some sort of network processor with
+programmable blocks embedded in a static pipeline. Figure~\ref{fig:arch-model}
+illustrates such a machine and highlights the interfaces of the \acrshort{p4}
+program.
 
 A \acrshort{p4} program specifies a mapping of vectors of bits -- a bit\-vector
 endomorphism. Every \acrshort{p4} program terminates; the language has no
@@ -719,5 +720,201 @@ mutually-exclusive, exactly one of them is set when the action returns.
 
 \subsubsection*{The match-action pipeline abstract machine}
 
+Although the \pfs specification does not define an abstract machine for the
+match-action pipeline, it does describe the semantics by analogy to imperative
+programs.
+
 The body of a control block is executed serially, as a sequence of imperative
-statements.
+statements. The syntax restricts the control block body such that the bulk of
+code within is limited to a special sub-block introduced with the \texttt{apply}
+keyword. The \texttt{apply} sub-block is the only place where tables can be
+explicitly invoked. The control can also invoke other controls or explicitly
+invoke actions by calling their \texttt{apply} methods, although it cannot
+invoke parsers.
+
+The \texttt{apply} block can contain \texttt{return} and \texttt{exit}
+statements. A \texttt{return} statement immediately terminates execution of the
+control block and returns control to the caller. An \texttt{exit} statement
+terminates execution of the entire control block call chain.
+
+A control block can invoke subroutines in the form of other controls during its
+execution. This requires prior instantiation of the sub-controls, either in the
+calling control block's body or prior to invoking a calling control block that
+is passed a control instance as a parameter. However, \pfs offers syntax
+sugar\todo{move to the syntax section if we decide to keep it} for the common
+case of using a sub-control exactly once. This shortcut is known as \emph{direct
+type invocation} and works even for controls with constructor
+parameters\todo{mention those prior to this point}. An example can be seen in
+Listing~\ref{lst:p4-direct-type-invocation}.
+
+\begin{lstlisting}[
+	caption={~An example of direct type invocation.},
+	label=lst:p4-direct-type-invocation,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+control Callee(/* parameters omitted */) { /* body omitted */ }
+
+control Caller(/* parameters omitted */) {
+	apply {
+		// Callee can be treated as an instance
+		Callee.apply(/* arguments omitted */);
+	}
+}
+
+// the Caller definition above desugars to the following
+
+control Caller(/* parameters omitted */) {
+	// local instance of Callee
+	@name("Callee") Callee() Callee_inst;
+	apply {
+		// Callee_inst is simply applied
+		Callee_inst.apply(/* arguments omitted */);
+	}
+}
+
+\end{lstlisting}
+
+\subsubsection*{Constructor parametrization}
+
+Although parsers and control blocks take parameters, these only define the
+interface between \acrshort{p4} code and the target architecture. This makes
+abstraction difficult, as expressing control blocks or parsers with similar
+structure requires either code duplication or a reliance on preprocessor
+macros\footnote{Which would be a rather dreadful affair.}. To address this
+problem, \pfs supports \emph{constructor parameter lists}. Constructor
+parameters are given in secondary, optional parameter lists, available to
+control blocks and parsers. Syntactically, they follow the regular parameters of
+the given construct. However, at the site of instantiation, the values of
+constructor parameters directly follow the type name.
+
+All constructor parameters must be directionless. Instantiations must bind all
+constructor parameters to compile-time known values. Constructor parametrization
+offers a light form of templating that is sufficient for many use cases and
+saves the user from substituting generic parsers and control blocks by hand.
+
+\begin{lstlisting}[
+	caption={~An example of a parser with constructor parameters.},
+	label=lst:p4-control-params,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+// a parser with one constructor parameter
+parser GenericParser(packet_in b, out Packet_header p)
+                    (bool udpSupport) {
+	// body omitted
+}
+...
+// the instantiation specifies all constructor parameters
+// topParser is a GenericParser where udpSupport = false
+GenericParser(false) topParser;
+\end{lstlisting}
+
+
+\subsubsection*{Deparsing}
+
+Deparsing is the inverse of parsing, i.e. the process of converting packet
+headers from their semantic representation back into a sequence of bytes. A
+careful reader will observe that the original \acrshort{p4}\textsubscript{14}
+forwarding model from Figure~\ref{fig:abstract-forwarding-model} does not
+include this step. Indeed, a deparser is not necessary if the device does not
+rewrite packets. For example, certain architectures may rely solely on metadata
+to communicate information about packet forwarding from the data plane and
+possibly include a rewriting step outside the \acrshort{p4} model.
+
+Nevertheless, deparsing is a common step for many network processors and \pfs
+fully supports it. However, the language does not include any special syntax for
+deparsing, which speaks somewhat to its generality. \pfs deparsers are expressed
+by means of control blocks combined with the special \texttt{packet\_out}
+\texttt{extern}. A value of type \texttt{packet\_out} denotes a buffer
+containing the packet to be sent out.
+
+Listing~\ref{lst:p4-deparser} shows an example deparser. The \texttt{emit}
+method of the \texttt{packet\_out} \texttt{extern} appends the given data to the
+packet buffer. The behaviour of a call to \texttt{emit} has different semantics,
+depending on the type of data being emitted.
+
+\begin{description}
+	\item[Headers] are emitted only if valid\todo{discuss header validity in the
+	parser semantics section}. If the header is invalid, the call to
+	\texttt{emit} behaves like a no-op.
+
+	\item[Header stacks] have their elements emitted recursively.
+
+	\item[Header unions and \texttt{struct}s] have their fields emitted
+	recursively.
+
+	\item[\texttt{enum}s and \texttt{error}s] cannot be serialized. It is
+	illegal to invoke \texttt{enum} directly or indirectly (through implicit
+	recursive behaviour) on these types.
+
+	\item[Base types] are emitted as-is, but only indirectly. It is illegal to
+	explicitly invoke \texttt{emit} on a base type.
+\end{description}
+
+The recursive behaviour of \texttt{emit} always follows the order of
+declarations in the \acrshort{p4} source code.
+
+\begin{lstlisting}[
+	caption={~An example of a \pfs deparser.},
+	label=lst:p4-deparser,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+control Deparser(inout headers hdr, packet_out packet) {
+	apply {
+		packet.emit(hdr.ethernet);
+		packet.emit(hdr.ipv4);
+		if (hdr.ipv4.isValid()) {
+			if (hdr.ipv4.protocol == IPProtocol.UDP) {
+				packet.emit(hdr.udp);
+			}
+			if (hdr.ipv4.protocol == IPProtocol.TCP) {
+				packet.emit(hdr.tcp);
+			}
+		}
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}[
+	caption={~The \texttt{packet\_out} \texttt{extern}.},
+	label=lst:p4-packet-out-extern,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+extern packet_out {
+	void emit<T>(in T data);
+}
+\end{lstlisting}
+
+
+\subsubsection*{The \acrshort{p4} abstract machine}
+
+Throughout this section, we have occasionally referred to some values as
+``evaluated at compile time'' or ``compile time -bound.''\todo{verify these
+references actually happened} A reader familiar with staged programming,
+dependent types, or C++ template instantiation may worry for the compiler
+performance that unrestricted compile-time evaluation entails. Fortunately, the
+\pfs specification has a rigorous definition for these terms and clarifies the
+extent to which a \acrshort{p4} compiler must evaluate a program during
+translation.
+
+A \acrshort{p4} program is evaluated in two stages, statically at compile time
+and dynamically at runtime.
