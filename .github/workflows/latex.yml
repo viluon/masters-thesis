@@ -17,19 +17,36 @@ jobs:
     container:
       image: ghcr.io/viluon/masters-thesis:${{ matrix.docker-tag }}
     steps:
-    - uses: actions/checkout@v3
+    - name: test node
+      run: |
+        echo "looking for a usable node in /__e/node"
+        for f in /__e/node*/bin/node; do
+            echo "testing: $f --version";
+            $f --version || echo "does not work, exit status: $?"
+            ldd $f || echo "could not ldd, $?"
+        done
+        echo "analysing built-in node"
+        node --version || echo "does not work, exit status: $?"
+        ldd node || echo "could not ldd, $?"
+
+    - name: checkout
+      uses: actions/checkout@v3
+
     - name: install dependencies
       run: |
         apt-get update
         apt-get install -y python3 zip bzip2 wget
+
     - name: zip up the sources
       run: |
         zip -9 -Z bzip2 -r -x '.git/*' @ .github/workflows/payload .
+
     - name: compile
       run: |
         latexmk -pdf ctufit-thesis.tex
         makeglossaries ctufit-thesis
         latexmk -pdf ctufit-thesis.tex
+
     - name: turn into a polyglot
       run: |
         git clone --recursive --depth 1 --branch lua-script-hack https://github.com/viluon/truepolyglot.git
@@ -41,11 +58,13 @@ jobs:
         chmod +x poly.pdf
         wget https://www.nayuki.io/res/forcing-a-files-crc-to-any-value/forcecrc32.py
         python3 forcecrc32.py poly.pdf 241 cafebabe
+
     - name: upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: pdfs
         path: '*.pdf'
+
     - name: release
       if: ${{ github.ref == 'refs/heads/master' && !matrix.experimental }}
       uses: marvinpinto/action-automatic-releases@v1.2.1
