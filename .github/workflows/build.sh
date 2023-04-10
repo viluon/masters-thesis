@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "installing dependencies"
 apt-get update;
-apt -o DPkg::Lock::Timeout=100 install -y python3 zip bzip2 wget;
+apt -o DPkg::Lock::Timeout=100 install -y python3 zip wget;
 
 sh -c 'node --version';
 bash -c 'cat <<< "foo" | grep f';
@@ -12,7 +12,7 @@ gzip --version;
 python3 --version;
 chmod --help;
 
-zip -9 -Z bzip2 -r -x '.git/*' @ .github/workflows/payload .;
+zip -9 -r -x '.git/*' @ .github/workflows/payload .;
 
 latexmk -pdf ctufit-thesis.tex;
 makeglossaries ctufit-thesis;
