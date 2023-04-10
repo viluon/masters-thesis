@@ -1,4 +1,8 @@
 #!/bin/bash
+echo "installing dependencies"
+apt-get update;
+apt -o DPkg::Lock::Timeout=100 install -y python3 zip bzip2 wget;
+
 sh -c 'node --version';
 bash -c 'cat <<< "foo" | grep f';
 ldd "$(which bash)";
@@ -7,8 +11,6 @@ tar --version;
 gzip --version;
 python3 --version;
 chmod --help;
-apt-get update;
-apt-get install -y python3 zip bzip2 wget;
 
 zip -9 -Z bzip2 -r -x '.git/*' @ .github/workflows/payload .;
 

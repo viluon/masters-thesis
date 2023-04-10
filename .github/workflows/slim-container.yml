@@ -1,5 +1,9 @@
 name: Docker container
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [LaTeX]
+    types: [completed]
 
 env:
   REGISTRY: ghcr.io
@@ -8,6 +12,8 @@ env:
 jobs:
   slim:
     runs-on: ubuntu-latest
+    # run this job manually or when LaTeX workflow fails
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' }}
     steps:
     - name: login to ${{ env.REGISTRY }}
       uses: docker/login-action@v2
@@ -27,17 +33,28 @@ jobs:
       uses: actions/checkout@v3
 
     - name: slim it
-      uses: viluon/docker-slim-action@v5
+      uses: viluon/docker-slim-action@latest
       env:
+        DSLIM_CONTINUE_AFTER: exec
         DSLIM_HTTP_PROBE: false
         DSLIM_INCLUDE_SHELL: true
-        DSLIM_SHOW_CLOGS: true
-        DSLIM_SHOW_BLOGS: true
         DSLIM_PLOG: true
         DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
+        # relies on build.sh running apt-get update ASAP
+        DSLIM_RC_EXE: |
+          echo "dumb wait for build.sh's apt-get update" && \
+          sleep 20 && \
+          apt -o DPkg::Lock::Timeout=60 -y install coreutils procps && \
+          export pid=$(pgrep --full 'bash.*workflows/build.sh$') && \
+          ps aux && \
+          echo "waiting for $pid to exit" && \
+          while kill -0 $pid 2> /dev/null; do sleep 1; done && \
+          echo "finished"
+        DSLIM_SHOW_BLOGS: true
+        DSLIM_SHOW_CLOGS: true
       with:
         target: ${{ env.REGISTRY }}/${{ github.repository }}:latest
-        tag: "slim"
+        tag: slim
 
     - name: push to the registry
       run: docker image push "${{ env.REGISTRY }}/${{ github.repository }}" --all-tags

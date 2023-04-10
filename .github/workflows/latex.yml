@@ -37,7 +37,7 @@ jobs:
       id: cache-restore
       with:
         path: |
-          _minted-ctufit-thesis/
+          **/_minted-*/
           **/*.acn
           **/*.aux
           **/*.bbl
@@ -76,31 +76,31 @@ jobs:
       uses: actions/cache/save@v3
       with:
         path: |
-          _minted-ctufit-thesis/
-          *.acn
-          *.aux
-          *.bbl
-          *.bcf
-          *.blg
-          *.dvi
-          *.fdb_latexmk
-          *.fls
-          *.glo
-          *.glsdefs
-          *.ist
-          *.lof
-          *.log
-          *.lol
-          *.lot
-          *.out
-          *.pdf
-          *.ps
-          *.run.xml
-          *.synctex.gz
-          *.synctex(busy)
-          *.tdo
-          *.toc
-          *.upa
+          **/_minted-*/
+          **/*.acn
+          **/*.aux
+          **/*.bbl
+          **/*.bcf
+          **/*.blg
+          **/*.dvi
+          **/*.fdb_latexmk
+          **/*.fls
+          **/*.glo
+          **/*.glsdefs
+          **/*.ist
+          **/*.lof
+          **/*.log
+          **/*.lol
+          **/*.lot
+          **/*.out
+          **/*.pdf
+          **/*.ps
+          **/*.run.xml
+          **/*.synctex.gz
+          **/*.synctex(busy)
+          **/*.tdo
+          **/*.toc
+          **/*.upa
         key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
     - name: turn into a polyglot
