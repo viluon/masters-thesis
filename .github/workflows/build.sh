@@ -1,9 +1,12 @@
-#!/bin/bash
+#!/bin/sh
+set -eux # -o pipefail not supported by sh
+# sadly bash is not available during slim build
+
 echo "installing dependencies"
 apt-get update;
-apt -o DPkg::Lock::Timeout=100 install -y python3 zip bzip2 wget;
+apt-get install -y python3 zip bzip2 wget;
 
-sh -c 'node --version';
+sh -c 'echo hi';
 bash -c 'cat <<< "foo" | grep f';
 ldd "$(which bash)";
 ldd "$(which ldconfig)";

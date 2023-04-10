@@ -32,6 +32,12 @@ jobs:
     - name: checkout
       uses: actions/checkout@v3
 
+    - name: read the build script
+      id: read-build-script
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./.github/workflows/build.sh
+
     - name: slim it
       uses: viluon/docker-slim-action@latest
       env:
@@ -39,17 +45,7 @@ jobs:
         DSLIM_HTTP_PROBE: false
         DSLIM_INCLUDE_SHELL: true
         DSLIM_PLOG: true
-        DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
-        # relies on build.sh running apt-get update ASAP
-        DSLIM_RC_EXE: |
-          echo "dumb wait for build.sh's apt-get update" && \
-          sleep 20 && \
-          apt -o DPkg::Lock::Timeout=60 -y install coreutils procps && \
-          export pid=$(pgrep --full 'bash.*workflows/build.sh$') && \
-          ps aux && \
-          echo "waiting for $pid to exit" && \
-          while kill -0 $pid 2> /dev/null; do sleep 1; done && \
-          echo "finished"
+        DSLIM_RC_EXE: ${{ steps.read-build-script.outputs.content }}
         DSLIM_SHOW_BLOGS: true
         DSLIM_SHOW_CLOGS: true
       with:
