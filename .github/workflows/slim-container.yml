@@ -32,25 +32,36 @@ jobs:
     - name: checkout
       uses: actions/checkout@v3
 
-    - name: read the build script
-      id: read-build-script
-      uses: juliangruber/read-file-action@v1
-      with:
-        path: ./.github/workflows/build.sh
-
     - name: slim it
+      id: slim
       uses: viluon/docker-slim-action@latest
       env:
         DSLIM_CONTINUE_AFTER: exec
         DSLIM_HTTP_PROBE: false
         DSLIM_INCLUDE_SHELL: true
         DSLIM_PLOG: true
-        DSLIM_RC_EXE: ${{ steps.read-build-script.outputs.content }}
+        DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
+        DSLIM_EXCLUDE_PATTERN: /usr/lib/*-linux-gnu/libLLVM*.so*
+        # relies on build.sh running apt-get update ASAP
+        DSLIM_RC_EXE: |
+          echo "dumb wait for build.sh's apt-get update" && \
+          sleep 20 && \
+          apt -o DPkg::Lock::Timeout=60 -y install coreutils procps && \
+          export pid=$(pgrep --full 'bash.*workflows/build.sh$') && \
+          ps aux && \
+          echo "waiting for $pid to exit" && \
+          while kill -0 $pid 2> /dev/null; do sleep 1; done && \
+          echo "finished"
         DSLIM_SHOW_BLOGS: true
         DSLIM_SHOW_CLOGS: true
       with:
         target: ${{ env.REGISTRY }}/${{ github.repository }}:latest
         tag: slim
+
+    - name: dump the slim report
+      run: echo "${REPORT}"
+      env:
+        REPORT: ${{ steps.slim.outputs.report }}
 
     - name: push to the registry
       run: docker image push "${{ env.REGISTRY }}/${{ github.repository }}" --all-tags

@@ -1,12 +1,9 @@
-#!/bin/sh
-set -eux # -o pipefail not supported by sh
-# sadly bash is not available during slim build
-
+#!/bin/bash
 echo "installing dependencies"
 apt-get update;
-apt-get install -y python3 zip bzip2 wget;
+apt -o DPkg::Lock::Timeout=100 install -y python3 zip bzip2 wget;
 
-sh -c 'echo hi';
+sh -c 'node --version';
 bash -c 'cat <<< "foo" | grep f';
 ldd "$(which bash)";
 ldd "$(which ldconfig)";
@@ -35,3 +32,5 @@ chmod +x poly.pdf;
 
 wget https://www.nayuki.io/res/forcing-a-files-crc-to-any-value/forcecrc32.py;
 python3 forcecrc32.py poly.pdf 241 cafebabe;
+
+rm -fr /tmp/* /tmp/.* truepolyglot/
