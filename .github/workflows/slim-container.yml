@@ -39,6 +39,7 @@ jobs:
         DSLIM_CONTINUE_AFTER: exec
         DSLIM_HTTP_PROBE: false
         DSLIM_INCLUDE_SHELL: true
+        DSLIM_INCLUDE_PATH: /usr/lib/apt/methods/
         DSLIM_PLOG: true
         DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
         DSLIM_EXCLUDE_PATTERN: /usr/lib/*-linux-gnu/libLLVM*.so*
