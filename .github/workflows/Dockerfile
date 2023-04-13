@@ -10,6 +10,6 @@ RUN git clone \
     --branch lua-script-hack \
     https://github.com/viluon/truepolyglot.git \
     /truepolyglot;
-RUN wget -o /forcecrc32.py https://www.nayuki.io/res/forcing-a-files-crc-to-any-value/forcecrc32.py;
+RUN wget -O /forcecrc32.py https://www.nayuki.io/res/forcing-a-files-crc-to-any-value/forcecrc32.py;
 
 ENTRYPOINT bash
