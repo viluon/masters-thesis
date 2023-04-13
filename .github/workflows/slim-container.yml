@@ -38,6 +38,7 @@ jobs:
       env:
         DSLIM_CONTINUE_AFTER: exec
         DSLIM_HTTP_PROBE: false
+        DSLIM_INCLUDE_CERT_ALL: false
         DSLIM_INCLUDE_SHELL: true
         DSLIM_PLOG: true
         DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
