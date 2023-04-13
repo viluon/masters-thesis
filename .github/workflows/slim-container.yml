@@ -39,15 +39,11 @@ jobs:
         DSLIM_CONTINUE_AFTER: exec
         DSLIM_HTTP_PROBE: false
         DSLIM_INCLUDE_SHELL: true
-        DSLIM_INCLUDE_PATH: /usr/lib/apt/methods/
         DSLIM_PLOG: true
         DSLIM_RC_ENTRYPOINT: /app/.github/workflows/build.sh
         DSLIM_EXCLUDE_PATTERN: /usr/lib/*-linux-gnu/libLLVM*.so*
-        # relies on build.sh running apt-get update ASAP
         DSLIM_RC_EXE: |
-          echo "dumb wait for build.sh's apt-get update" && \
-          sleep 20 && \
-          apt -o DPkg::Lock::Timeout=60 -y install coreutils procps && \
+          apt-get -y install coreutils procps && \
           export pid=$(pgrep --full 'bash.*workflows/build.sh$') && \
           ps aux && \
           echo "waiting for $pid to exit" && \

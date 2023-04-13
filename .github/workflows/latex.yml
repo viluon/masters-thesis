@@ -8,25 +8,8 @@ jobs:
     container:
       image: ghcr.io/viluon/masters-thesis:slim
     steps:
-    - name: test node
-      run: |
-        echo "looking for a usable node in /__e/node"
-        for f in /__e/node*/bin/node; do
-            echo "testing: $f --version";
-            $f --version || echo "does not work, exit status: $?"
-            ldd $f || echo "could not ldd, $?"
-        done
-        echo "analysing built-in node"
-        node --version || echo "does not work, exit status: $?"
-        ldd node || echo "could not ldd, $?"
-
     - name: checkout
       uses: actions/checkout@v3
-
-    - name: install dependencies
-      run: |
-        apt-get update
-        apt-get install -y python3 zip wget
 
     - name: zip up the sources
       run: |

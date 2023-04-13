@@ -1,16 +1,9 @@
 #!/bin/bash
-echo "installing dependencies"
-apt-get update;
-apt -o DPkg::Lock::Timeout=100 install -y python3 zip wget;
 
-sh -c 'node --version';
-bash -c 'cat <<< "foo" | grep f';
-ldd "$(which bash)";
-ldd "$(which ldconfig)";
+# do not install dependencies here, APT commands belong in the Dockerfile
+
 tar --version;
 gzip --version;
-python3 --version;
-chmod --help;
 
 zip -9 -r -x '.git/*' @ .github/workflows/payload .;
 
