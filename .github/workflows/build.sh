@@ -21,4 +21,4 @@ chmod +x poly.pdf;
 
 python3 /forcecrc32.py poly.pdf 241 cafebabe;
 
-rm -fr /tmp/* /tmp/.* truepolyglot/
+rm -fr /tmp/* /tmp/.* /app/* /app/.*;

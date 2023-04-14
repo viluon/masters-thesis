@@ -1,5 +1,10 @@
 name: Docker container
 on:
+  push:
+    paths:
+      - .github/workflows/Dockerfile
+      - .github/workflows/build.sh
+      - .github/workflows/slim-container.yml
   workflow_dispatch:
   workflow_run:
     workflows: [LaTeX]
@@ -13,7 +18,7 @@ jobs:
   slim:
     runs-on: ubuntu-latest
     # run this job manually or when LaTeX workflow fails
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' }}
     steps:
     - name: login to ${{ env.REGISTRY }}
       uses: docker/login-action@v2
