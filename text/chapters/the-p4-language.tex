@@ -612,11 +612,11 @@ A parser conceptually manipulates a \texttt{ParserModel} data structure.
 	language=c
 ]
 ParserModel {
-    error       parseError;
-    onPacketArrival(packet p) {
-        ParserModel.parseError = error.NoError;
-        goto start;
-    }
+	error       parseError;
+	onPacketArrival(packet p) {
+		ParserModel.parseError = error.NoError;
+		goto start;
+	}
 }
 \end{lstlisting}
 
@@ -916,5 +916,55 @@ performance that unrestricted compile-time evaluation entails. Fortunately, the
 extent to which a \acrshort{p4} compiler must evaluate a program during
 translation.
 
+\emph{Compile-time known values} are generally constants and stateless
+constructs that themselves only depend on other compile-time known values. Since
+\acrshort{p4} has no loops, no recursion, and no complex metaprogramming
+facilities, the set of compile-time known values is finite and can be evaluated
+in a single pass.\todo{we don't need to explain \emph{everything}, right?}
+
 A \acrshort{p4} program is evaluated in two stages, statically at compile time
-and dynamically at runtime.
+and dynamically at runtime. The notion of compile-time evaluation in
+\acrshort{p4} is closely related to resource allocation of the target device.
+Static evaluation proceeds in the order that declarations appear in the source
+file. It begins at the top level and recurses into lexical scopes.
+
+\todo[inline]{finish this}
+
+\subsubsection*{Control plane \acrshort{api}}
+
+A \acrshort{p4} compiler generates methods for interacting with data plane
+constructs that can be in any way controlled or configured at runtime. These are:
+
+\begin{itemize}
+	\item value sets
+	\item tables
+	\item keys
+	\item actions
+	\item \texttt{extern} instances
+\end{itemize}
+
+To disambiguate references from the control plane to these entities, \pfs
+requires that each such entity has a unique fully qualified name. Additionally,
+control block and parser instances also need unique names, because they contain
+constructs from the above list.
+
+The \pfs specification lays out in detail what names are given to various syntax
+forms, but these technicalities are not relevant for the purposes of this
+thesis. Generally, the control plane name corresponds to the accessor syntax of
+the construct in \acrshort{p4} code. For example, a slice of the four least
+significant bits of the bit string \texttt{s} (\texttt{s[3:0]}) is named
+\texttt{s[3:0]} in the control plane \acrshort{api}. The only thing to note here
+is that in cases where a name is not given straightforwardly, the compiler
+requires a \texttt{@name} annotation to be attached to the construct.
+\texttt{@name} can also be used to rename other constructs. The second
+annotation controlling naming is \texttt{@hidden}, which can be used to hide
+constructs from the control plane \acrshort{api}. Hidden constructs are not
+subject to the unique name requirement.
+
+\subsubsection*{Dynamic evaluation}
+
+A \acrshort{p4} program defines the parsers, control blocks, \texttt{extern}s,
+and other constructs that make up the data plane. However, it is up to the
+target architecture to decide how and when are all these execution blocks
+evaluated at runtime. Packet processing systems often operate concurrently,
+so the \pfs specification lays out\todo{finish}

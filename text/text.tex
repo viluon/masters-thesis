@@ -4,6 +4,7 @@
 \newacronym{api}{API}{application programming interface}
 \newacronym{asic}{ASIC}{application-specific integrated circuit}
 \newacronym{ast}{AST}{abstract syntax tree}
+\newacronym{cfg}{CFG}{context-free grammar}
 \newacronym{dsl}{DSL}{domain-specific language}
 \newacronym{fpga}{FPGA}{field-programmable gate array}
 \newacronym{fsm}{FSM}{finite state machine}
@@ -14,6 +15,7 @@
 \newacronym{lto}{LTO}{link-time optimization}
 \newacronym{onf}{ONF}{Open Networking Foundation}
 \newacronym{p4}{P4}{Programming Protocol-independent Packet Processors}
+\newacronym{peg}{PEG}{parsing expression grammar}
 \newacronym{repl}{REPL}{read-eval-print loop}
 \newacronym{sdn}{SDN}{software-defined networking}
 \newacronym{xml}{XML}{eXtensible Markup Language}
@@ -30,6 +32,17 @@
 	morecomment=[s]{/*}{*/},
 	morestring=[b]",
 }
+
+\DeclareCiteCommand{\citeauthor}
+	{\boolfalse{citetracker}%
+	\boolfalse{pagetracker}%
+	\usebibmacro{prenote}}
+	{\ifciteindex
+		{\indexnames{labelname}}
+		{}%
+	\printtext[bibhyperref]{\printnames[][1-1]{labelname}}}
+	{\multicitedelim}
+	{\usebibmacro{postnote}}
 
 \include{text/chapters/introduction}
 \include{text/chapters/the-p4-language}
