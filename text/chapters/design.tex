@@ -233,32 +233,32 @@ places few constraints on grammar design and is easy to implement in an
 extensible manner.
 
 Packrat parsing\cite{ford2002packrat} is a linear time algorithm for recognizing
-productions of a \acrfull*{peg}. It relies heavily on memoization to avoid
-costly backtracking, at the expense of memory overhead.
+productions of a \acrfull{peg}. It relies heavily on memoization to avoid costly
+backtracking, at the expense of memory overhead.
 \citeauthor{dubroy2017incremental_packrat_parsing} augment the packrat
 memoization table to support incrementality. The result is a parser that is at
 once simple, general, incremental, and efficient.
 
-Our packrat parser conceptually handles \acrlong*{peg}s\cite{ford2004parsing}, a
-class of unambiguous grammars for context-free languages. \acrshort*{peg}s are
-syntactically similar to \acrlong*{cfg}s. However, the choice operator in
-\acrshort*{cfg}s is ambiguous, whereas \acrshort*{peg}s use ordered choice,
-which greedily attempts to match alternatives in order. The right-hand side of a
-\acrlong*{peg} rule can also contain predicates, which attempt to match without
+Our packrat parser conceptually handles \acrlong{peg}s\cite{ford2004parsing}, a
+class of unambiguous grammars for context-free languages. \acrshort{peg}s are
+syntactically similar to \acrlong{cfg}s. However, the choice operator in
+\acrshort{cfg}s is ambiguous, whereas \acrshort{peg}s use ordered choice, which
+greedily attempts to match alternatives in order. The right-hand side of a
+\acrlong{peg} rule can also contain predicates, which attempt to match without
 consuming input. Predicates are useful for positive and negative look\-ahead.
 
 Our design differentiates between a generic parser library and a parser built on
-it. Grammars are defined using a small \acrshort*{dsl} implemented with Rust's
+it. Grammars are defined using a small \acrshort{dsl} implemented with Rust's
 declarative macros. An example can be seen in
 Listing~\ref{lst:grammar-dsl-example}. The~\texttt{grammar!} macro expands to a
 data structure representing the grammar itself. This structure can be passed to
 a smart constructor, which validates the grammar\footnote{Ensuring all
 referenced non-terminals are in fact defined, and that \texttt{start} is
 present.} and returns a parser. The implementation interprets the grammar
-\acrshort*{dsl} at runtime.
+\acrshort{dsl} at runtime.
 
 If future testing and development necessitate optimization of the parser, there
-is room to build a parser compiler for the \acrshort*{dsl} and generate a more
+is room to build a parser compiler for the \acrshort{dsl} and generate a more
 efficient solution from the same grammar. Procedural Rust macros\footnote{While
 declarative macros can only perform a very restricted set of rewriting
 operations on token trees, procedural macros can run arbitrary Rust code during
@@ -280,7 +280,7 @@ on the input for the duration of parsing.
 
 
 \begin{lstlisting}[
-	caption={~Example grammar in our \acrshort*{dsl}.},
+	caption={~Example grammar in our \acrshort{dsl}.},
 	label=lst:grammar-dsl-example,
 	captionpos=t,
 	tabsize=4,
@@ -316,32 +316,103 @@ grammar! {
 \end{lstlisting}
 
 
-\subsubsection*{Error tolerance}
+\subsubsection*{Error reporting}
 
-Error tolerance in parsing is far more nuanced than in any of the previous
-steps, which is not surprising, considering the relative complexity of the
-languages that the individual steps recognize and process.
+Error handling in parsing is far more nuanced than in any of the previous steps,
+which is not surprising, considering the relative complexity of the languages
+that the individual steps recognize and process. A good parser should attempt to
+provide as much feedback as possible to the user, even when faced with
+unexpected tokens. It is not enough to simply stop at the first error, and it is
+not enough to be imprecise about the locations of problems in the source file.
+Both of these considerations pose some challenges.
 
-Our design features automatic error recovery based on the grammar definition.
-Rules can fail to match for several reasons:
+The desire to continue parsing malformed input to provide feedback to the
+developer has a long history\cite{graham1975practical}. Error recovery has been
+studied at length in \acrlong{peg}s as well\cite{redziejowski2009mouse,
+maidl2013exception, demedeiros2016parsing, demedeiros2018syntax,
+demedeiros2020automatic}. The \acrshort{peg} case is interesting, because a
+packrat parser relies on failures to guide choice selection. By the time a
+parsing failure propagates to the starting non-terminal, the information about
+the context that led to it is lost.
+
+Specifically, when encountering unexpected input, a packrat parser unwinds the
+stack to a ``calling'' ordered choice operator, and attempts to parse the next
+alternative. The next alternative is likely the wrong choice, however. The
+recently failed alternative should have matched, but encountered invalid input.
+Thus, many other alternatives may fail before an error eventually propagates to
+the user. The end result is that the programmer receives an unhelpful error
+message that could potentially come from a position many tokens before the
+actual problem's origin. This specific challenge has a popular practical
+solution in the form of the \emph{farthest failure
+heuristic}\cite{ford2002packrat_non_func}. It is based on the observation that
+the alternative that should have matched will probably process the longest
+prefix of the token stream.
+
+While the farthest failure heuristic addresses the location problem in many
+practical situations, it is not a general solution. Worse, the imprecise error
+reporting of \acrshort{peg}s has other implications as well. Notably, a common
+consideration for error messages is the suggestion of expected tokens to the
+user, to provide a rudimentary selection of possible fixes. However, the
+compounding failures of \acrshort{peg} choice operators grow the set of expected
+tokens, which makes the suggestions in error messages irrelevant.
+
+Intuitively, the problem with \acrshort{peg} error reporting is that
+non-terminals deeper down the parse tree have no way of distinguishing between
+an error in the input that will ultimately cause the overall parse to fail, and
+an error that can be recovered from in an ordered choice operator higher up.
+
+To address this problem, \citeauthor{maidl2013exception} conservatively extended
+the \acrshort{peg} formalism with \emph{error labels}\cite{maidl2013exception}.
+Error labels semantically\footnote{In the sense that we are adding semantic
+information to the process that analyzes syntax.} stand for errors that a
+grammar rule can raise when encountering unexpected input. This differentiates
+errors caused by nonsensical input from benign parse failures, and thus solves
+the problem of accurate error reporting in \acrlong{peg}s\footnote{At the
+expense of extensive manual annotations of the grammar. See
+\cite{demedeiros2020automatic} for a possible remedy.}. The extension comprises
+several components:
+
+\todo[inline]{we actually do want a full syntax for \acrlong{peg}s}
+
 \begin{itemize}
-	\item An input token is missing where it is expected. For example, a missing
-	semicolon after a declaration. The parser could recover by inserting the
-	expected token at the current location.
-	\item An input token is present where it is not expected. For example, a
-	semicolon in the middle of an expression. The parser could recover by
-	ignoring the unexpected token.
-	\item None of the alternatives in a choice match.
+	\item The \acrlong{peg} is extended with a finite set of labels $L$.
+	\item A special failure label \texttt{fail}, $\texttt{fail} \not \in L$, is
+	also added to the grammar. This label indicates a benign failure that can be
+	caught by the ordered choice operator.
+	\item The grammar of \acrlong{peg} right-hand sides is enriched with the
+	\texttt{throw} operator, which takes a label $l \in L$ as an argument. An
+	error thrown by \texttt{throw} cannot be caught by ordered choice and thus
+	indicates a parse error that should be immediately reported to the user.
+	\item Rules are modified to include instances of the \texttt{throw}
+	operator.
 \end{itemize}
 
+The error label extension is reminiscent of exception handling in ordinary
+programming languages, and indeed was originally modelled after it, complete
+with an extension of ordered choice playing (the role of)
+\texttt{catch}\cite{demedeiros2016parsing}. However, the \texttt{catch}-like
+mechanism is not necessary for error recovery, so we will not discuss it
+further.
+
+Error labels returned by the parsing process can be mapped to readable error
+messages. Because the parsing process terminates early, the set of expected
+tokens is kept accurate. In addition, having a single, obvious point of failure
+also makes location tracking trivial.
 
 \subsubsection*{Tracking source locations}
 
-Source locations are an important consideration for any incremental parser. A
-naive implementation that includes the source locations in the parse tree leads
-to a linear amount of work per edit, as the parser must recompute the source
-location of every node. This would largely defeat the purpose of incremental
-parsing.
+However, our setting complicates location tracking. Source locations are an
+important consideration for any incremental parser. A naive implementation, that
+includes the source locations in the parse tree, leads to a linear amount of
+work per edit, as the parser must recompute the source location of every node.
+This would largely defeat the purpose of incremental parsing. At the same time,
+source locations are important for features such as go to definition, or
+diagnostics generated by semantic analysis in subsequent processing steps. While
+we could keep all positions relative,
+
+Fortunately, the nature of the incremental parsing approach of
+\citeauthor{dubroy2017incremental_packrat_parsing} permits an interesting hybrid
+between
 
 \todo[inline]{mention that we can trade off memory for speed in the preprocessor
 by controlling memoization in a fine-grained manner using Salsa.}
