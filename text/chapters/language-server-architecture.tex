@@ -71,7 +71,7 @@ Next, we will delve into both categories and take a closer look at what they
 offer.
 
 
-\subsection{Code comprehension in \acrshort{lsp}}
+\subsection{Code comprehension in \pdfacrshort{lsp}}
 
 \todo[inline]{this is lsp 3.17}
 
@@ -149,7 +149,7 @@ which is used by some servers to run tests or open a Find References dialog.
 \end{figure}
 
 
-\subsection{Coding features in \acrshort{lsp}}
+\subsection{Coding features in \pdfacrshort{lsp}}
 
 A shorter but no less important range of \acrshort{api} calls supports the
 developer right when they are authoring code. The main features are
@@ -440,11 +440,11 @@ internal and external interfaces.
 Even though the traditional pipeline and its query-based reimagination are
 conceptually close, their implementations are vastly different. Typical
 compilers mutate global state during the course of a compilation. If any stages
-produce additional data, they populate additional global maps and tables for
-further passes to use. This can lead to subtle compiler bugs when compiler
-passes are added, removed, or reordered. Mutable state is also an obstacle to
-parallelism and makes it difficult to reason about where exactly in the pipeline
-does one intermediate form change into another.
+produce additional data, they populate side channels in the form of global maps
+and tables for further passes to use. This can lead to subtle compiler bugs when
+compiler passes are added, removed, or reordered. Mutable state is also an
+obstacle to parallelism and makes it difficult to reason about where exactly in
+the pipeline does one intermediate form change into another.
 
 On the other hand, the query-based approach is inherently functional. Compiler
 passes are ordered by their data dependencies and the amount of available

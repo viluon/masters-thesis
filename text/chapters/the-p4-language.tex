@@ -7,13 +7,20 @@
 	\dots in which we delve into the syntax and semantics of \acrshort{p4},
 	explain its use cases, and discuss the differences to conventional programming
 	languages.
+
+	\begin{displayquote}
+		\textit{The expressive power of a programming language arises from its
+		strictures and \emph{not} from its affordances.}
+
+		-- Robert Harper, \citedate*{pfpl1oplss2019} \cite{pfpl1oplss2019}
+	\end{displayquote}
 \end{chapterabstract}
 
 One of the original motivations behind \acrshort{p4} was the need for
-restriction. While other \acrlong{dsl}s, such as Click\todo{citation}, existed
-at the time, their embeddings within general-purpose programming languages made
-it difficult to analyze data dependencies crucial for scheduling parallel
-execution. The expressiveness of a language complicates its efficient
+restriction. While other \acrlong{dsl}s, such as Click\cite{kohler2000click},
+existed at the time, their embeddings within general-purpose programming
+languages made it difficult to analyze data dependencies crucial for scheduling
+parallel execution. The expressiveness of a language complicates its efficient
 compilation. In the words of Robert Harper,
 
 \begin{displayquote}
@@ -106,9 +113,9 @@ not available for pattern-matching.
 A lifetime may end early if the packet is dropped during processing. Dropping is
 indicated by mutating metadata.
 
-%--------------------------%
-\section{The \pfs language}
-%--------------------------%
+%-----------------------%
+\section{A tour of \pfs}
+%-----------------------%
 
 \begin{figure}[t]
 	\includegraphics[width=1.00\textwidth]{resources/p4_16-architecture-model.png}
@@ -379,13 +386,16 @@ extern void verify(in bool condition, in error err);
 		\tikzstyle{rejecting}=[state,double,minimum size=2em]
 
 		\node[state] (start) {$\text{start}$};
-		\node[state, below=of start] (q2) {};
-		\node[state, left=of q2] (q1) {};
-		\node[state, below=of q1] (q3) {};
-		\node[state, below=of q2] (q4) {};
-		\node[state, right=of q4] (q5) {};
-		\node[state, accepting, below=1.5cm of q4] (accept) {$\text{accept}$};
-		\node[rejecting, below=1.5cm of q3] (reject) {$\text{reject}$};
+		\node[state, right=of start] (q2) {};
+		\node[state, below=of q2] (q1) {};
+		\node[state, right=of q1] (q3) {};
+		\node[state, right=of q2] (q4) {};
+		\node[state, above=of q4] (q5) {};
+		\node[
+			state, accepting, minimum size=4em, yshift=.5cm, right=1.5cm of q4]
+			(accept) {$\text{accept}$};
+		\node[rejecting, minimum size=4em, yshift=.5cm, right=1.5cm of q3]
+			(reject) {$\text{reject}$};
 
 		\begin{pgfonlayer}{background}
 			\node[cloud,fit=(q1)(q2)(q3)(q4)(q5)(start),inner sep=2pt] (cloud) {};
@@ -393,6 +403,8 @@ extern void verify(in bool condition, in error err);
 
 		\path
 			(start) edge          (q2)
+			(q2)edge [loop above, out=60, in=120, looseness=8]
+			                      (q2)
 			(q1)edge              (q2)
 				edge              (q3)
 			(q2)edge              (q4)
@@ -405,7 +417,6 @@ extern void verify(in bool condition, in error err);
 	\end{tikzpicture}
 	\caption{An abstract overview of a \acrshort{p4} parser. The states inside
 	the grey circle are accessible to user code.}
-	\todo[inline]{add a loop}
 	\label{fig:parser-overview}
 \end{figure}
 
