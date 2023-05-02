@@ -51,9 +51,9 @@ jobs:
 
     - name: compile
       run: |
-        latexmk -pdf ctufit-thesis.tex
+        latexmk -pdf -file-line-error ctufit-thesis.tex
         makeglossaries ctufit-thesis
-        latexmk -pdf ctufit-thesis.tex
+        latexmk -pdf -file-line-error ctufit-thesis.tex
 
     - name: save cache
       uses: actions/cache/save@v3

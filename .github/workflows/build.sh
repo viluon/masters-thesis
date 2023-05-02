@@ -8,9 +8,9 @@ gzip --version;
 
 zip -9 -r -x '.git/*' @ .github/workflows/payload .;
 
-latexmk -pdf ctufit-thesis.tex;
+latexmk -pdf -file-line-error ctufit-thesis.tex;
 makeglossaries ctufit-thesis;
-latexmk -pdf ctufit-thesis.tex;
+latexmk -pdf -file-line-error ctufit-thesis.tex;
 
 /truepolyglot/truepolyglot pdfzip \
     --pdffile ctufit-thesis.pdf \
