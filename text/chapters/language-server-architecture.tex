@@ -93,7 +93,7 @@ Haskell evaluation code lenses.}.
 
 Go to Definition and Find References are
 present in some of the oldest code comprehension tools, dating back at least to
-the Unix utility \texttt{ctags}\cite{exuberant_ctags}. These let the editor jump
+the Unix utility \texttt{ctags}\cite{exuberant-ctags}. These let the editor jump
 from a symbol's use-site to its definition and vice versa, just as their names
 imply. \acrshort{lsp}'s Document Highlight request does not provide syntax
 highlighting, rather, it serves to visually assist the programmer with locating
@@ -110,7 +110,7 @@ navigating code. It is typically implemented by the client rendering a pop-up
 box of documentation for a given symbol. Finally, Code Lens is a versatile
 editor feature for displaying additional information at a given position in a
 document, such as the number of references of a type or the code metrics of a
-procedure\cite{codelens_comparison}. It can trigger an action when activated,
+procedure\cite{codelens-comparison}. It can trigger an action when activated,
 which is used by some servers to run tests or open a Find References dialog.
 
 \begin{figure}[t]\centering
@@ -208,9 +208,9 @@ triggering a rename action. Version 3.17 introduced \emph{type hierarchy}
 requests, relevant only to programming languages with subtyping. On the other
 hand, more general facets of the protocol see creative use in unintended
 contexts. One example is the use of lenses and special comments in the Haskell
-Language Server project\cite{haskell_ls} to provide \acrshort{repl}-like
+Language Server project\cite{haskell-ls} to provide \acrshort{repl}-like
 functionality. Another is the LT$_\text{E}$X Visual Studio Code
-extension\cite{vscode_spellcheck}, which provides spell and grammar checking in
+extension\cite{vscode-spellcheck}, which provides spell and grammar checking in
 Markdown and \LaTeX{} documents, as well as in programming language comments.
 Even though \acrshort{lsp} has no built-in support for extracting the comments
 of a document or for spell checking in general, LT$_\text{E}$X achieves this
@@ -252,7 +252,7 @@ the differences in ranking.
 
 \begin{table}\centering
 \caption{Popularity of programming languages among VS Code users and
-StackOverflow's 2022 Developer survey\cite{stackoverflow_survey_2022}
+StackOverflow's 2022 Developer survey\cite{stackoverflow-survey-2022}
 respondents.}
 \begin{tabular}{|r|c|c|}
 	Rank & VS Code extension & Most popular programming and scripting languages
@@ -410,11 +410,11 @@ builds heavily on incremental computation. A Roslyn compiler takes centre stage
 in a number of interactive and batch applications, maintaining a semantic model
 of the codebase. Higher-level tools then query and update this model via several
 \acrshort{api}s designed for static analysis, code refactoring, and other
-use-cases\cite{roslyn_apis}\todo{what are some concrete applications that build
+use-cases\cite{roslyn-apis}\todo{what are some concrete applications that build
 on these?}. The entire stack is optimised for interactive use. For example, the
 parsers utilise a combination of persistent ``green'' \acrlong{ast}s and
 transient ``red'' trees. The second, ephemeral type is built on-demand,
-optimised for querying, and discarded with edits\cite{roslyn_red_green_trees},
+optimised for querying, and discarded with edits\cite{roslyn-red-green-trees},
 while the ``green'' tree serves as the source of truth.
 
 As more and more language tools interact with and rely on the compiler, compiler
