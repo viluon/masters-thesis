@@ -23,6 +23,8 @@
 \newcommand{\pfs}{\texorpdfstring{{P}4\textsubscript{16}}{P4 16}}
 \newcommand{\pdfacrshort}[1]{\texorpdfstring{\acrshort{#1}}{\glsentryshort{#1}}}
 \newcommand{\extern}{\texttt{extern}}
+\newcommand{\citelink}[2]{\hyperlink{cite.\therefsection @#1}{#2}}
+\newcommand{\linkedciteauthor}[1]{\citelink{#1}{\Citeauthor*{#1}}}
 
 \lstdefinelanguage{p4}{
 	keywords={abstract,action,apply,bit,bool,const,control,default,else,enum,
@@ -34,17 +36,6 @@
 	morecomment=[s]{/*}{*/},
 	morestring=[b]",
 }
-
-\DeclareCiteCommand{\citeauthor}
-	{\boolfalse{citetracker}%
-	\boolfalse{pagetracker}%
-	\usebibmacro{prenote}}
-	{\ifciteindex
-		{\indexnames{labelname}}
-		{}%
-	\printtext[bibhyperref]{\printnames[][1-1]{labelname}}}
-	{\multicitedelim}
-	{\usebibmacro{postnote}}
 
 \include{text/chapters/introduction}
 \include{text/chapters/the-p4-language}
