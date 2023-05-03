@@ -5,8 +5,8 @@
 
 \begin{chapterabstract}
 	\dots in which we delve into the syntax and semantics of \acrshort{p4},
-	explain its use cases, and discuss the differences to conventional programming
-	languages.
+	explain its use cases, and discuss the differences to conventional
+	programming languages.
 
 	\begin{displayquote}
 		\textit{The expressive power of a programming language arises from its
@@ -21,41 +21,41 @@ restriction. While other \acrlong{dsl}s, such as Click\cite{kohler2000click},
 existed at the time, their embeddings within general-purpose programming
 languages made it difficult to analyze data dependencies crucial for scheduling
 parallel execution. The expressiveness of a language complicates its efficient
-compilation. In the words of Robert Harper,
-
-\begin{displayquote}
-	\textit{The expressive power of a programming language arises from its
-	strictures and \emph{not} from its affordances.}
-
-	-- Robert Harper, \citedate*{pfpl1oplss2019} \cite{pfpl1oplss2019}
-\end{displayquote}
+compilation.
 
 Rather than embedding \acrshort{p4} in an existing language, these
 considerations motivated a clean-slate design. However, to understand why is
 packet processing any different from tasks suited to general-purpose programming
-languages, we need to familiarise ourselves with the switching architecture.
+languages, we first need to familiarise ourselves with the switching
+architecture.
 
 %----------------------------%
 \section{What's in a switch}
 %----------------------------%
 
+\begin{displayquote}
+	{[Packet switching is]} \emph{the routing and transferring of data by means
+	of addressed packets so that a channel is occupied during the transmission
+	of the packet only, and upon completion of the transmission the channel is
+	made available for the transfer of other traffic.}
+
+	-- \citetitle*{weik2012fiber} \cite{weik2012fiber}
+\end{displayquote}
+
 In the following text, we choose to use \emph{switch} to mean a general packet
-forwarding device. Examples of switches are
+switching device. Such a device could be a dedicated piece of hardware or a
+software solution running on a general-purpose computer.
 
-A network switch
-\todo[inline]{need a readable description of this \& network routing, also
-citations in the text below}
-
-Traditionally, these devices were examples of fixed-function hardware. Various
-networking protocols were implemented directly in circuitry, which made them
-efficient, but inflexible. It is impossible to reconfigure a fixed-function
-\acrshort{asic} to process a protocol it was not explicitly designed for in
-advance. If a new, backward-incompatible version of a given protocol emerges, or
-if a hardware error is found in the chip, the network administrators need to
-perform a costly hardware replacement in order to support, respectively
-circumvent it. Moreover, fixed-function hardware design is a lengthy and
-resource-intensive process. It may take several years before an updated
-fixed-function chip hits the market.
+Traditionally, these devices were implemented by fixed-function hardware.
+Various networking protocols were built directly into the circuitry, which made
+these switches efficient, but inflexible. It is impossible to reconfigure a
+fixed-function \acrfull{asic} to process a protocol it was not explicitly
+designed for in advance. If a new, backward-incompatible version of a given
+protocol emerges, or if a hardware error is found in the chip, the network
+administrators need to perform a costly hardware replacement in order to support
+or circumvent it, respectively. Moreover, fixed-function hardware design is a
+lengthy and resource-intensive process. It may take several years before an
+updated fixed-function chip hits the market.
 
 The innovation of recent years is the introduction of \emph{programmable}
 network processors, which can change the set of supported protocols on the fly.
@@ -66,8 +66,8 @@ protocols but contains efficient circuitry for parsing and pattern-matching in
 order to support arbitrary\footnote{To some degree of complexity supported by
 the circuit.} protocols uploaded to the chip as microcode. While programmable
 networking hardware does incur a penalty for reconfigurability, when it comes to
-efficiency, it sits between fixed-function devices and completely general-purpose
-solutions.
+efficiency, it sits between fixed-function devices and completely
+general-purpose solutions.
 
 Other implementations of packet switching are also common. The already mentioned
 \acrlong{fpga}s can be programmed to simulate programmable or fixed-function
@@ -93,25 +93,97 @@ networks.
 
 To support network configurations regardless of their physical implementation,
 the original \acrshort{p4} paper defines the target-independent \emph{abstract
-forwarding model}, outlined in Figure~\ref{fig:abstract-forwarding-model}. This
-model assumes an end-to-end pipeline split into \emph{ingress} and \emph{egress}
-parts. An arriving packet is first parsed to recognize the headers present
-therein. These headers then travel through the pipeline's \emph{match-action
-units}. A match-action unit performs limited pattern-matching and rewriting on
-the parsed packet header. This part of the pipeline is partially configured at
-runtime by the control plane. Forwarding rules defined in software are uploaded
-to the network device.
+forwarding model}, outlined in Figure~\ref{fig:abstract-forwarding-model}. There
+is a key conceptual split in the architecture, common in packet processing in
+general, of the \emph{data plane} and the \emph{control plane}. We will meet
+these terms over and over, so let us define them here.
 
-\todo[inline]{all this needs a much better explanation! it's crucial for
-understanding the P4 way of doing things.}
+\begin{description}
+	\item[Data plane] is the part of the switch responsible for packet
+	processing, i.e. all the hard work of manipulating bits in the arriving
+	packets and choosing where to send the packets next. It is the part that is
+	programmable in \acrshort{p4}, though it is unchanging in traditional packet
+	processing approaches. The data plane is responsible for packet parsing,
+	pattern-matching, and rewriting.
+	\item[Control plane] is the part of the switch responsible for
+	configuration. It is not programmable in \acrshort{p4}, but \acrshort{p4}
+	programs implicitly define a software interface for it. The control plane is
+	responsible for uploading forwarding rules to the data plane, extracting
+	data from special fixed-function devices (such as throughput counters), and
+	reconfiguring the flexible parts of the \acrshort{p4} program at runtime. A
+	control plane program could be a simple Python script or a C++ application.
+\end{description}
 
-The model assumes that the payload is handled separately by the device and is
-not available for pattern-matching.
+\subsubsection*{Parallels to general-purpose computing}
 
-\todo[inline]{finish the model description, mention deparsers, explain metadata}
+It is helpful to think of the data plane as an infrequently changing program
+running on a network chip\footnote{Even though, as discussed, it could reside
+entirely in software.}. It defines the protocols the switch can handle and the
+stages of packet processing the switch performs, but not the concrete forwarding
+rules, which can change at runtime.
 
-A lifetime may end early if the packet is dropped during processing. Dropping is
-indicated by mutating metadata.
+In contrast, the control plane typically runs on a general-purpose computer and
+uses the data plane as a coprocessor. It uploads forwarding rules (e.g. which
+subnet to forward an arriving packet to) to coprocessor-specific memory. The
+interface between the control plane and the data plane depends entirely on the
+\acrshort{p4} program that the data plane runs, and relies on a hardware link
+between the two, such as PCI Express.
+
+The abstract forwarding model assumes an end-to-end data plane pipeline split
+into \emph{ingress} and \emph{egress} parts. An arriving packet is first parsed
+to recognize the headers present therein. These headers then travel through the
+pipeline's \emph{match-action units}. Each match-action unit performs limited
+pattern-matching and rewriting on the parsed packet header -- complex
+\acrshort{p4} code can map to a sequence of several match-action units. This
+part of the pipeline is partially configured at runtime by the control plane,
+usually by forwarding rules defined in software.
+
+To relate match-action units to conventional computing, they are similar to
+cycles in a \acrshort{cpu} pipeline. In fact, the entire abstract forwarding
+model can be thought of as the unrolling of a limited number of cycles of a
+\acrshort{cpu} pipeline. This corresponds well to \acrshort{p4}'s lack of
+looping constructs.
+
+Packet headers (supplemental data placed at the beginning of a packet) are a
+central concept in packet processing, and therefore also in the \acrshort{p4}
+language. The abstract forwarding model assumes that the packet is split into
+two parts: the header and the payload. Only the header proceeds into the
+match-action pipeline\footnote{Although what part of the packet actually is
+``the header'' is entirely up to the \acrshort{p4} program.}. The model assumes
+that the payload is handled separately by the device and is thus not available
+for pattern-matching.
+
+\subsubsection*{Keeping it high-level}
+
+While the presented forwarding model gives a good overview, it is not the full
+picture. A notable omission is packet output. If the \acrshort{p4} program
+implements a switch, how does the packet exit the pipeline? How does it select
+the output port? And how does the switch filter out packets that should not be
+forwarded?
+
+These questions touch on the issue of supporting use-cases and functionality too
+granular to be part of the abstract forwarding model. While they may seem like
+blatant oversights, these omissions of packet processing details are deliberate.
+\acrshort{p4} supports both output port selection and packet filtering via
+packet \emph{metadata}. Intrinsic metadata is a target-dependent data structure
+that stores information about a given packet and is available to the
+\acrshort{p4} program at every stage of the pipeline, including parsing.
+Metadata may include the input port and other information provided by the
+device. Crucially, the metadata is typically mutable, and contains fields and
+flags for the output port, recirculation, packet dropping, and other features.
+
+The final stage of the processing pipeline in programmable network hardware
+involves \emph{deparsing}, i.e. serializing the packet header back into a
+bitstream. As we will see on page~\pageref{sec:p4-deparsing}, deparsing is a
+case of a more general control mechanism that does not need special treatment
+in the abstract model.
+
+The design philosophy of reliance on general-purpose constructs, such as
+metadata or \extern{}s (which we will see later), underpins much of the
+\acrshort{p4} language, and its effects can be seen in many facets of the \pfs
+revision. It makes the language both simpler, as it avoids accumulating narrow
+use-case features, and more flexible, since it generalizes to platforms to which
+these concepts do not translate.
 
 %-----------------------%
 \section{A tour of \pfs}
@@ -125,17 +197,28 @@ indicated by mutating metadata.
 	\label{fig:arch-model}
 \end{figure}
 
-\acrshort{p4} is not a programming language for von Neumann
-architectures\todo{starting with a negative example is poor taste}. The abstract
-model assumes the target machine to be some sort of network processor with
-programmable blocks embedded in a static pipeline. Figure~\ref{fig:arch-model}
-illustrates such a machine and highlights the interfaces of the \acrshort{p4}
-program.
+This section largely mirrors the \pfs language specification. It does not cover
+the entire language, but should serve as a decent introduction to its most
+important features, while attempting to draw some parallels to conventional
+programming languages and terms of general-purpose computing.
 
 A \acrshort{p4} program specifies a mapping of vectors of bits -- a bit\-vector
 endomorphism. Every \acrshort{p4} program terminates; the language has no
 looping constructs and no recursion, a compiler can thus determine the precise
 maximum runtime of a program statically.
+
+\acrshort{p4} is therefore not a programming language for von Neumann
+architectures. Instead, its abstract model assumes the target machine to be some
+sort of network processor with programmable blocks embedded in a static
+pipeline. The overhaul into \pfs slightly redefined the abstract forwarding
+model, as can be seen in Figure~\ref{fig:arch-model}. This diagram focuses on
+the interfaces of the \acrshort{p4} program and points out metadata, which
+deserves a special mention.
+
+Practical implementations of \acrshort{p4}-configurable network hardware often
+need to track information not included in the packet headers. This is especially
+the case for devices with multiple pipelines, such as the one outlined in
+Figure~\ref{fig:arch-model}.
 
 \todo[inline]{in discussing the subpar nature of the spec, include examples of
 	mistakes.
@@ -176,8 +259,8 @@ maximum runtime of a program statically.
 \pfs syntax is reminiscent of imperative programming languages in the C family.
 It uses prefix notation for typed bindings, braces for lexical scoping blocks,
 and semicolons to separate statements. However, instead of general-purpose
-procedures, the top level constructs for executable code are mainly controls,
-parsers, and actions. These will be explained in detail in this section.
+procedures, the top level constructs for executable code are mainly control
+blocks, parsers, and actions. These will be explained in detail in this section.
 
 \subsubsection*{\extern{} objects and functions}
 
@@ -188,11 +271,13 @@ These special objects and functions were already present in
 constructs, which helped to both simplify and generalize the language.
 
 \extern{} objects and functions describe interfaces to facilities provided by
-the architecture, as well as certain built-in language constructs\todo{reference
-the parser declaration grammar section}. For example, the \extern{} object in
-Listing~\ref{lst:p4-extern-cksum} allows \acrshort{p4} code to utilize a
-fixed-function checksum unit provided by the target. The object specifies no
-implementation for the listed constructors and methods.
+the architecture, as well as certain built-in language constructs\footnote{Such
+as the \texttt{packet\_in} intrinsic in Listing~\ref{lst:p4-prsr-packet-in}}.
+For example, the \extern{} object in Listing~\ref{lst:p4-extern-cksum} allows
+\acrshort{p4} code to utilize a fixed-function checksum unit provided by the
+target. The object specifies no implementation for the listed constructors and
+methods, rather, the target platform implements the asserted functionality
+intrinsically e.g. by fixed-function circuitry.
 
 To invoke a method of the checksum unit, the user needs first to
 \emph{instantiate} the \extern{} object. This syntactic form is shared among all
@@ -225,6 +310,10 @@ extern Checksum16 {
 }
 \end{lstlisting}
 
+\subsubsection*{l-values}
+
+\todo[inline]{this entire thing}
+
 \subsubsection*{Functions and parametrized code}
 
 Functions in \acrshort{p4} come in several flavours. The first kind is known as
@@ -240,11 +329,10 @@ all parameters to a \acrshort{p4} function need to include a \emph{direction}.
 	indicates a read-write parameter with a defined value.
 \end{description}
 
-Only l-values\todo{what are those?} can be passed as \texttt{out} and
-\texttt{inout} parameters. The execution of the function call can change the
-value of an \texttt{out} or \texttt{inout} parameter's corresponding l-value.
-Note that \acrshort{p4} functions can combine \texttt{out} parameters and return
-values.
+Only l-values can be passed as \texttt{out} and \texttt{inout} parameters. The
+execution of the function call can change the value of an \texttt{out} or
+\texttt{inout} parameter's corresponding l-value. Note that \acrshort{p4}
+functions can combine \texttt{out} parameters and return values.
 
 Parameter directions are \acrshort{p4}'s way of introducing a limited form of
 references, themselves a principled approach to pointers. Parametrized
@@ -275,21 +363,23 @@ architectures can place restrictions on the set of constructs and operations a
 programmer can use within a parser.
 
 \pfs parser declarations unrestricted by the target architecture may appear very
-similar to regular imperative code. However, the important distinction between a
-parser and other function-like constructs in the \pfs language are data
+similar to conventional imperative code, and reminiscent of other function-like
+constructs the language offers. The crucial parser-only features are data
 extraction, pattern-matching, error handling, and state transitions.
 
 Data extraction moves information from the input packet into memory available
 for pattern-matching further down the pipeline, typically registers or similar
 containers. To facilitate this operation, the \acrshort{p4} core library
-contains an intrinsic\todo{established term?} \extern\todo{we should definitely
-change this and the plural into a command} definition called \texttt{packet\_in}
+contains an intrinsic\footnote{By an ``intrinsic,'' we mean a language feature
+that somehow invokes a mechanism native to the host architecture, one that could
+not be defined in the language itself, or not as efficiently, and needs to be
+hard-coded in the compiler.} \extern{} definition called \texttt{packet\_in}
 which represents incoming packets. This special \extern{} cannot be manually
 instantiated\todo{make sure we explain instantiation prior to this. Maybe
 externs should be described first in the syntax section?}, but it is
-instantiated implicitly for every parser parameter\todo{arg vs param} of type
-\texttt{packet\_in}. This allows parser states to invoke the methods of this
-\extern, shown in Listing~\ref{lst:p4-prsr-packet-in}.
+instantiated implicitly for every parser parameter of type \texttt{packet\_in}.
+This allows parser states to invoke the methods of the \extern{}, shown in
+Listing~\ref{lst:p4-prsr-packet-in}.
 
 \begin{lstlisting}[
 	caption={~The intrinsic \extern{} that facilitates data extraction.},
@@ -303,9 +393,9 @@ instantiated implicitly for every parser parameter\todo{arg vs param} of type
 ]
 extern packet_in {
 	void extract<T>(out T headerLvalue);
-	void extract<T>(out T variableSizeHeader, in bit<32> varFieldSizeBits);
+	void extract<T>(out T varSizeHeader, in bit<32> varFieldSizeBits);
 	T lookahead<T>();
-	bit<32> length();  // This method may be unavailable in some architectures
+	bit<32> length();  // May be unavailable in some architectures
 	void advance(bit<32> bits);
 }
 \end{lstlisting}
@@ -342,12 +432,12 @@ Another parser-specific construct facilitates the computation of transition
 targets by pattern-matching on extracted data. The \texttt{select} expression
 tries to match a value against a number of patterns and evaluates to a state, if
 successful. Otherwise, it triggers a runtime error with code
-\texttt{error.NoMatch}. The patterns of a \texttt{select} expression can contain
-integer literals, bit masks, ranges, don't-care values, tuples (when matching on
-multiple values simultaneously), or, on some architectures, \textit{parser value
-sets} specified at runtime by the control plane.\todo{one snippet to rule them
-all, one snippet to find them, one snippet to bring them all and in the \LaTeX{}
-bind them.}
+\texttt{error.NoMatch}\todo{check that we explain error codes prior to this}.
+The patterns of a \texttt{select} expression can contain integer literals, bit
+masks, ranges, don't-care values, tuples (when matching on multiple values
+simultaneously), or, on some architectures, \textit{parser value sets} specified
+at runtime by the control plane.\todo{one snippet to rule them all, one snippet
+to find them, one snippet to bring them all and in the \LaTeX{} bind them.}
 
 While error-handling already happens implicitly in \texttt{select} expressions,
 the \texttt{verify} statement, defined in Listing~\ref{lst:p4-prsr-verify},
@@ -418,7 +508,6 @@ extern void verify(in bool condition, in error err);
 	\label{fig:parser-overview}
 \end{figure}
 
-
 \begin{lstlisting}[
 	caption={~A function declaration in \pfs.},
 	label=lst:p4-fun,
@@ -431,6 +520,51 @@ extern void verify(in bool condition, in error err);
 ]
 bit<32> max(in bit<32> left, in bit<32> right) {
 	return (left > right) ? left : right;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[
+	caption={~Parser value sets, an advanced \acrshort{p4} feature for changing
+	parser behaviour at runtime from the control plane.},
+	label=lst:p4-parser-value-set,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+struct vsk_t {
+	@match(ternary)
+	bit<16> port;
+}
+value_set<vsk_t>(4) pvs;
+select (p.tcp.port) {
+	pvs: runtime_defined_port;
+	_: other_port;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[
+	caption={~Parsers can instantiate and invoke other parsers as subroutines.},
+	label=lst:p4-ctrl,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+parser ipv4_parser(packet_in packet, out IPv4 ipv4) { /* body omitted */ }
+parser main_parser(packet_in packet, out Headers h) {
+	ipv4_parser() instance;
+
+	state subroutine {
+		instance.apply(packet, h.ipv4);
+		// execution proceeds if the sub-parser
+		// ends in accept state
+		transition accept;
+	}
 }
 \end{lstlisting}
 
@@ -828,7 +962,7 @@ GenericParser(false) topParser;
 \end{lstlisting}
 
 
-\subsubsection*{Deparsing}
+\subsubsection*{Deparsing} \label{sec:p4-deparsing}
 
 Deparsing is the inverse of parsing, i.e. the process of converting packet
 headers from their semantic representation back into a sequence of bytes. A
