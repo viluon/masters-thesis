@@ -179,7 +179,7 @@ and semicolons to separate statements. However, instead of general-purpose
 procedures, the top level constructs for executable code are mainly controls,
 parsers, and actions. These will be explained in detail in this section.
 
-\subsubsection*{\extern objects and functions}
+\subsubsection*{\extern{} objects and functions}
 
 Before diving into the bulk of the syntactical forms that dominate user-written
 \acrshort{p4} code, we need to introduce the general concept of \extern{}s.
@@ -187,26 +187,27 @@ These special objects and functions were already present in
 \acrshort{p4}\textsubscript{14} version 1.1. \pfs fully embraced these
 constructs, which helped to both simplify and generalize the language.
 
-\extern objects and functions describe interfaces to facilities provided by the
-architecture, as well as certain built-in language constructs\todo{reference the
-parser declaration grammar section}. For example, the \extern object in
+\extern{} objects and functions describe interfaces to facilities provided by
+the architecture, as well as certain built-in language constructs\todo{reference
+the parser declaration grammar section}. For example, the \extern{} object in
 Listing~\ref{lst:p4-extern-cksum} allows \acrshort{p4} code to utilize a
 fixed-function checksum unit provided by the target. The object specifies no
 implementation for the listed constructors and methods.
 
 To invoke a method of the checksum unit, the user needs first to
-\emph{instantiate} the \extern object. This syntactic form is shared among all
+\emph{instantiate} the \extern{} object. This syntactic form is shared among all
 types with constructors: \texttt{control} blocks, \texttt{parser}s, and
 \texttt{package}s\todo{describe those somewhere}. The effect of an instantiation
 is to allocate the corresponding object, binding it to the specified name.
 
 The compiler is in charge of mapping instances of \extern{}s to the target
 architecture. If it does not find a mapping, either because the target does not
-support the \extern or does not have the resources to fit all its instances, the
-compilation fails with an error.
+support the \extern{} or does not have the resources to fit all its instances,
+the compilation fails with an error.
 
 \begin{lstlisting}[
-	caption={~An \extern object specifying the interface to the target's checksum unit.},
+	caption={~An \extern{} object specifying
+	the interface to the target's checksum unit.},
 	label=lst:p4-extern-cksum,
 	captionpos=t,
 	tabsize=4,
@@ -248,7 +249,7 @@ values.
 Parameter directions are \acrshort{p4}'s way of introducing a limited form of
 references, themselves a principled approach to pointers. Parametrized
 \acrshort{p4} code follows a copy in / copy out calling convention, which makes
-functions easy to reason about and limits side effecting behaviour of \extern
+functions easy to reason about and limits side effecting behaviour of \extern{}
 methods. We will discuss this later in ?\todo{reference here}
 
 .
@@ -261,11 +262,11 @@ declarations define all the states of the \acrshort{fsm}, except the implicit
 built-in \texttt{accept} and \texttt{reject} states further described in the
 semantics section\todo{reference here}. Each parser has to contain at least the
 initial \texttt{start} state. During parsing, the parser can manipulate local
-state\todo{context?} in the form of variables and \extern instantiations. These
-are defined directly in the parser declaration block, before listing any states,
-meaning that the type of this local context is statically known and independent
-of the state the parser may appear in at runtime. In other words, parser
-declarations follow lexical scoping.
+state\todo{context?} in the form of variables and \extern{} instantiations.
+These are defined directly in the parser declaration block, before listing any
+states, meaning that the type of this local context is statically known and
+independent of the state the parser may appear in at runtime. In other words,
+parser declarations follow lexical scoping.
 
 States can introduce lexically-scoped local variables, but not additional
 \extern{}s. Other statements like conditionals, assignments, or method calls are
@@ -283,7 +284,7 @@ for pattern-matching further down the pipeline, typically registers or similar
 containers. To facilitate this operation, the \acrshort{p4} core library
 contains an intrinsic\todo{established term?} \extern\todo{we should definitely
 change this and the plural into a command} definition called \texttt{packet\_in}
-which represents incoming packets. This special \extern cannot be manually
+which represents incoming packets. This special \extern{} cannot be manually
 instantiated\todo{make sure we explain instantiation prior to this. Maybe
 externs should be described first in the syntax section?}, but it is
 instantiated implicitly for every parser parameter\todo{arg vs param} of type
@@ -291,7 +292,7 @@ instantiated implicitly for every parser parameter\todo{arg vs param} of type
 \extern, shown in Listing~\ref{lst:p4-prsr-packet-in}.
 
 \begin{lstlisting}[
-	caption={~The intrinsic \extern that facilitates data extraction.},
+	caption={~The intrinsic \extern{} that facilitates data extraction.},
 	label=lst:p4-prsr-packet-in,
 	captionpos=t,
 	tabsize=4,
@@ -459,7 +460,7 @@ programmer.}. There are two important restrictions on action parameter lists.
 	\item Parameters with no direction must all come at the end of the parameter
 	list. These directionless parameters indicate \emph{action
 	data}\todo{explain what that is}.
-	\item Action parameters cannot have \extern types.
+	\item Action parameters cannot have \extern{} types.
 \end{enumerate}
 
 The second major \acrshort{p4} construct that appears exclusively\todo{right?}
@@ -673,7 +674,7 @@ The calling convention gives function calls\todo{I really need some sort of
 universal definition of function-like constructs in p4 that I stick to
 throughout the text} a semantics that ensures arguments cannot alias one another
 and impure functions cannot hold references to \acrshort{p4} code. This design
-is ultimately motivated by the need to control the side effects of \extern
+is ultimately motivated by the need to control the side effects of \extern{}
 functions and methods, which are arbitrarily powerful. The copy in / copy out
 calling convention lets compilers reason about programs in the presence of
 \extern{}s.
@@ -846,8 +847,8 @@ by means of control blocks combined with the special \texttt{packet\_out}
 packet to be sent out.
 
 Listing~\ref{lst:p4-deparser} shows an example deparser. The \texttt{emit}
-method of the \texttt{packet\_out} \extern appends the given data to the packet
-buffer. The behaviour of a call to \texttt{emit} has different semantics,
+method of the \texttt{packet\_out} \extern{} appends the given data to the
+packet buffer. The behaviour of a call to \texttt{emit} has different semantics,
 depending on the type of data being emitted.
 
 \begin{description}
@@ -861,7 +862,7 @@ depending on the type of data being emitted.
 	recursively.
 
 	\item[\texttt{enum}s and \texttt{error}s] cannot be serialized. It is
-	illegal to invoke \texttt{enum} directly or indirectly (through implicit
+	illegal to invoke \texttt{emit} directly or indirectly (through implicit
 	recursive behaviour) on these types.
 
 	\item[Base types] are emitted as-is, but only indirectly. It is illegal to
@@ -948,7 +949,7 @@ constructs that can be in any way controlled or configured at runtime. These are
 	\item tables
 	\item keys
 	\item actions
-	\item \extern instances
+	\item \extern{} instances
 \end{itemize}
 
 To disambiguate references from the control plane to these entities, \pfs

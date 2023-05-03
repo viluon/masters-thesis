@@ -2,6 +2,13 @@
 \chapter{Language Server Architecture}
 %--------------------------------------%
 
+\begin{chapterabstract}
+	\dots in which we introduce language servers in general and the
+	\acrlong{lsp} in particular, outline their relationship to other classes of
+	language tooling, and look at high-level architectural decisions that their
+	use-cases imply.
+\end{chapterabstract}
+
 Language servers have a lot in common with compilers. Like compilers, they have
 to build up a semantic model of a program and provide useful diagnostics for
 invalid or suspicious input along the way. Unlike a compiler, a language server
@@ -14,9 +21,8 @@ optimise the programs they process. Instead, they are effectively
 special-purpose query engines. Their output is a data structure optimised for
 fast querying, such as finding references, definitions, or providing
 context-sensitive completion suggestions. From that point of view, it could seem
-like a language server is merely a compiler frontend\todo{decide on \& unify
-"frontend" vs "front-end" (back, mid, \dots)} with very little backend logic.
-Unfortunately, this is not the case.
+like a language server is merely a compiler frontend with very little backend
+logic. Unfortunately, this is not the case.
 
 The requirement for real-time feedback to the developer is the primary
 constraint on a language server's design. For all but the most basic languages
