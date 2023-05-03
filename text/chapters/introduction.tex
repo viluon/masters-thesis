@@ -9,27 +9,47 @@
 % Use that any way it pleases you (or comment it out). It can contain, for
 % instance, a summary of the chapter. Or, there can be a quotation.
 \begin{chapterabstract}
-	\todo[inline]{abstract}
+	\dots in which we get to know the context that gave rise to the
+	\acrshort{p4} language and the challenges we set out to overcome.
 \end{chapterabstract}
 
-\acrfull{p4} is a domain-specific language for programming network switches. It
-became widely popular in the field of \acrfull{sdn} since its introduction in
-2014\cite{p4original}. \acrshort{p4} has been described as the \emph{natural
-evolution} of OpenFlow, a standard communications protocol for \acrshort{sdn}.
-The language lets a network engineer specify the data plane\footnote{Also known
-as the ``forwarding plane."} of a router architecture independently of the
-underlying hardware. A \acrshort{p4} compiler can then synthesise microcode for
-a given switch\todo{not just for switches!} platform and generate library files
-for the control plane. Unlike previous approaches in \acrshort{sdn},
-\acrshort{p4} is does not have built-in support for common network protocols
-like TCP, IP, or Ethernet. Instead, the language provides protocol-independent
-constructs that users can leverage in order to define arbitrary protocols and
-instruct a flexible network switch on how to handle them.
+\acrfull{p4} is a domain-specific language for programming network switches. Its
+release started a shift in the field of \acrfull{sdn} which, up to that point,
+relied heavily on fixed-function hardware for high-performance networking
+applications. Similarly to how the C language became a de facto portable
+assembler, abstracting over the details of each microprocessor, \acrshort{p4}
+abstracts over the details of network processors by presenting a deeply
+customizable interface shared by networking software and hardware alike.
 
-In 2017, \acrshort{p4} underwent a major redesign\cite{p416} which simplified
-the syntax and removed special-purpose language constructs in favour of more
-general solutions\footnote{Specifically, features like counters and checksum
-units were replaced by \extern{}s, a universal construct for specifying
+Unlike previous approaches in \acrshort{sdn}, \acrshort{p4} does not have
+built-in support for common network protocols like TCP, IP, or Ethernet.
+Instead, it provides protocol-independent constructs that users can leverage in
+order to define arbitrary protocols and instruct a flexible network switch on
+how to handle them. This programmability lets a network engineer specify the
+configuration and packet processing steps of a router architecture independently
+of the underlying machinery.
+
+\todo[inline]{we need a data/control plane description/intro}
+% data plane\footnote{Also known as the ``forwarding plane."}
+% A \acrshort{p4} compiler
+% can then synthesize microcode for a given platform and generate library files
+% for the control plane.
+
+The newfound flexibility of network processor programming that \acrshort{p4}
+enables does not get a chance to shine on traditional network hardware, which is
+built for a predetermined set of protocols and processing functions. The real
+power of \acrshort{p4} is unlocked by \emph{programmable} network processors,
+which can be reconfigured to support novel protocols and forwarding setups. The
+commercial sector answered the call for such hardware, for example in Intel's
+Tofino line of
+chips\footnote{\url{https://www.intel.com/content/www/us/en/products/network-io/programmable-ethernet-switch.html}}.
+
+\acrshort{p4} became wildly popular in \acrshort{sdn} since its introduction in
+2014\cite{p4original}, sparking both research and commercial applications. Three
+years later, \acrshort{p4} underwent a major redesign\cite{p416}, which
+simplified the syntax and removed special-purpose language constructs in favour
+of more general solutions\footnote{Specifically, features like counters and
+checksum units were replaced by \extern{}s, a universal construct for specifying
 additional hardware capabilities not explicitly covered by the core syntax. The
 language shrank from over 70 to less than 40
 keywords\cite{p416:v1:spec:comparison}.}. The redesigned language is known as
@@ -78,31 +98,35 @@ program\cite{p4insight}, or, as evidenced by the open backends, are parts of the
 compiler proper. This is a problem, because the compiler was not designed for
 interactive use. Compilations of complex programs can take over an hour to
 complete. Long feedback loops hamper development. What's more, information
-provided by the compiler frontend is very limited. The compiler typically
-reports at most one error message and provides very few explanations. The lack
-of an integration between the compiler and development environments is an
-obstacle to new users. Even just an ergonomic presentation of diagnostics would
-be a large improvement. We can do far better, as interactive editing support for
-conventional programming languages clearly demonstrates.
+provided by the compiler frontend is very limited -- the compiler typically
+reports at most one error message with very little (if any) explanation. The
+lack of an integration between the compiler and development environments is an
+obstacle to new users and a neglected area of \acrshort{p4} developer
+experience. Even an ergonomic presentation of error and warning messages would
+be a large improvement.
 
-\todo{make the case for real-time feedback and better error
-reporting}
+We can do far better, as interactive editing support for conventional
+programming languages clearly demonstrates. Integrated developer environments
+provide many features that \acrshort{p4} programmers can only dream of,
+including autocompletion, documentation pop-ups, real-time diagnostics, code
+navigation, automatic formatting, and refactoring. These features are not only
+convenient, but also improve the quality of software by reducing the cognitive
+load on the programmer.
 
 %-----------------------------------------%
 \section*{Language Servers to the Rescue}
 %-----------------------------------------%
 
-Over the last decade\todo{poor opening? This should be in another section too},
-\emph{language servers} became a popular architecture\cite{barros2022editing}
-for providing semantically informed editing features in integrated developer
-environments and lightweight source code editors alike. Although examples of
-language server -like tools predate their standardization\cite{bour2018merlin},
-a major milestone in their development was the introduction of the
-\acrfull{lsp}. The support of \acrshort{lsp} in Visual Studio Code seeded an
-ever-growing environment of cross-platform tooling for a variety of programming,
-configuration, specification, and markup languages. Their success can be
-attributed in part to the investment by Microsoft. However, \acrshort{lsp} as a
-standard has much technical merit.
+Over the last decade, \emph{language servers} became a popular
+architecture\cite{barros2022editing} for providing semantically informed editing
+features in integrated developer environments and lightweight source code
+editors alike. Although examples of language server -like tools predate their
+standardization\cite{bour2018merlin}, a major milestone in their development was
+the introduction of the \acrfull{lsp}. The support of \acrshort{lsp} in Visual
+Studio Code seeded an ever-growing environment of cross-platform tooling for a
+variety of programming, configuration, specification, and markup languages.
+Their success can be attributed in part to the investment by Microsoft. However,
+\acrshort{lsp} as a standard has much technical merit.
 
 Before the introduction of a common communication interface between
 language-specific tooling and a given source code editor, implementors had to
@@ -112,10 +136,11 @@ smart completion and "go to definition" features for the Python programming
 language. Suppose the author aims to extend Vim, Emacs, and IntelliJ IDEA. They
 would therefore have to reimplement the given functionality in vimscript, Emacs
 Lisp, and a JVM-based language. Even though recent innovations in classical text
-editors\todo{Neovim} have partly moved away from using their own
-\acrshort{dsl}'s, the author is still burdened with three times the
-implementation work, as every development environment \acrshort{api} is
-different.
+editors\footnote{One such project is a fork and refactoring of Vi IMproved,
+\emph{Neovim}: \url{https://github.com/neovim/neovim}.} have partly moved away
+from using their own \acrshort{dsl}'s, the author is still burdened with three
+times the implementation work, as every development environment \acrshort{api}
+is different.
 
 The solution to this problem is to split editor extensions according to the
 client-server model. The major implementation work for domain-specific
@@ -160,8 +185,8 @@ tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
 	\item (intro) language servers, VS Code (screenshots, c++?)
 	\item design: overview of the architecture, interfaces with the editor, what
 		needs to be implemented
-	\item subsections about problems that needed solving, but most should go into
-		the design part!
+	\item subsections about problems that needed solving, but most should go
+		into the design part!
 	\item results, what it can do, open-source repository, performance metrics
 		(aim for interactivity)
 	\item conclusion, next steps
