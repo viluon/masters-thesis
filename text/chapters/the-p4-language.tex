@@ -218,7 +218,14 @@ deserves a special mention.
 Practical implementations of \acrshort{p4}-configurable network hardware often
 need to track information not included in the packet headers. This is especially
 the case for devices with multiple pipelines, such as the one outlined in
-Figure~\ref{fig:arch-model}.
+Figure~\ref{fig:arch-model}, where the partial computation results from one
+pipeline need to travel to the next in order to continue processing. The nature
+of passing such metadata is heavily target-dependent, however. Some
+architectures may include explicit side-channels for metadata and reflect this
+in the interfaces they provide to user code, while other targets demand that the
+user includes metadata explicitly in the packet headers. In other words, the
+user metadata channel in P4\textsubscript{16}'s abstract forwarding model is
+purely conceptual.
 
 \todo[inline]{in discussing the subpar nature of the spec, include examples of
 	mistakes.
@@ -258,17 +265,24 @@ Figure~\ref{fig:arch-model}.
 
 \pfs syntax is reminiscent of imperative programming languages in the C family.
 It uses prefix notation for typed bindings, braces for lexical scoping blocks,
-and semicolons to separate statements. However, instead of general-purpose
-procedures, the top level constructs for executable code are mainly control
-blocks, parsers, and actions. These will be explained in detail in this section.
+and semicolons to separate statements. However, instead of functions or
+procedures, the dominant top level constructs for executable code are control
+blocks and parsers, neither of which has a close relative in the world of conventional general-purpose computing.
 
-\subsubsection*{\extern{} objects and functions}
+\subsection*{Imports and the core library}
+
+Although not a language construct in its own right, the \acrshort{p4} core
+library is a set of common programming definitions distributed together with
+language tooling. Unlike preludes in certain programming languages, the core
+library is not automatically included in every \acrshort{p4} program and must be
+imported explicitly with the preprocessor directive \texttt{\#include
+<core.p4>}. \pfs does not have a module system and relies solely on the C
+preprocessor (or a sufficiently capable subset thereof) for code reuse.
+
+\subsection*{\extern{} objects and functions}
 
 Before diving into the bulk of the syntactical forms that dominate user-written
 \acrshort{p4} code, we need to introduce the general concept of \extern{}s.
-These special objects and functions were already present in
-\acrshort{p4}\textsubscript{14} version 1.1. \pfs fully embraced these
-constructs, which helped to both simplify and generalize the language.
 
 \extern{} objects and functions describe interfaces to facilities provided by
 the architecture, as well as certain built-in language constructs\footnote{Such
@@ -277,7 +291,7 @@ For example, the \extern{} object in Listing~\ref{lst:p4-extern-cksum} allows
 \acrshort{p4} code to utilize a fixed-function checksum unit provided by the
 target. The object specifies no implementation for the listed constructors and
 methods, rather, the target platform implements the asserted functionality
-intrinsically e.g. by fixed-function circuitry.
+intrinsically, e.g. by fixed-function circuitry.
 
 To invoke a method of the checksum unit, the user needs first to
 \emph{instantiate} the \extern{} object. This syntactic form is shared among all
@@ -286,9 +300,16 @@ types with constructors: \texttt{control} blocks, \texttt{parser}s, and
 is to allocate the corresponding object, binding it to the specified name.
 
 The compiler is in charge of mapping instances of \extern{}s to the target
-architecture. If it does not find a mapping, either because the target does not
-support the \extern{} or does not have the resources to fit all its instances,
-the compilation fails with an error.
+architecture (i.e. performing the allocation of resources on the target). If it
+does not find a mapping, either because the target does not support the
+\extern{} or does not have the resources to fit all its instances, the
+compilation fails with an error.
+
+\extern{} objects and functions were already present in
+\acrshort{p4}\textsubscript{14} version 1.1, but \pfs fully embraced these
+constructs. This helped to both simplify and generalize the language and led to
+the elimination of several less general concepts. For example,
+\acrshort{p4}\textsubscript{14} had dedicated syntax for checksum units.
 
 \begin{lstlisting}[
 	caption={~An \extern{} object specifying
@@ -310,11 +331,44 @@ extern Checksum16 {
 }
 \end{lstlisting}
 
-\subsubsection*{l-values}
+\subsection*{l-values}
 
-\todo[inline]{this entire thing}
+\pfs has a concept of \emph{l-values}, reminiscent of C. An l-value is an
+expression that denotes a memory cell that can be assigned to. These include
 
-\subsubsection*{Functions and parametrized code}
+\begin{itemize}
+	\item variables; identifiers of a base or derived type\todo{derived type!},
+	\item fields of structs, headers, and header unions, and
+	\item the results of bit-slice operators (e.g. \texttt{pkt[0:7]}).
+\end{itemize}
+
+\subsection*{Annotations}
+
+\begin{lstlisting}[
+	caption={~A structured annotation on a table.},
+	label=lst:p4-annotation,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+@MyAnnotation[1, 2, 3]
+table myTable { /* ... */ }
+\end{lstlisting}
+
+Almost all syntactical constructs in \pfs can be modified by \emph{annotations}
+(see Listing~\ref{lst:p4-annotation}). These come in two flavours, structured
+and unstructured, depending on the restrictions imposed on their arguments.
+Unstructured annotations can take arbitrary token streams as their arguments, so
+long as the parentheses in these token streams are balanced.
+
+Very few annotations are built into the language, so we will not discuss them in
+depth, but they provide an important avenue for target-specific extension of the
+language.
+
+\subsection*{Functions and parametrized code}
 
 Functions in \acrshort{p4} come in several flavours. The first kind is known as
 \emph{function declarations} and is perhaps the closest relative of procedures
@@ -340,8 +394,7 @@ references, themselves a principled approach to pointers. Parametrized
 functions easy to reason about and limits side effecting behaviour of \extern{}
 methods. We will discuss this later in ?\todo{reference here}
 
-.
-\todo[inline]{subsubsubsection?}
+\subsection*{Parsers}
 
 Another construct for parametrized code are \emph{parser declarations}. A
 \acrshort{p4} parser describes a \acrlong{fsm} whose job is to recognize valid
@@ -427,6 +480,8 @@ own, \acrshort{p4} parsers can specify state transitions using the
 \texttt{transition} statement. The target of the transition can be either given
 statically or computed. A missing \texttt{transition} statement at the end of a
 state block implies a transition into the \texttt{reject} state.
+
+\subsubsection*{\texttt{select} expressions}
 
 Another parser-specific construct facilitates the computation of transition
 targets by pattern-matching on extracted data. The \texttt{select} expression
@@ -555,7 +610,7 @@ select (p.tcp.port) {
 	belowcaptionskip=\medskipamount,
 	language=p4
 ]
-parser ipv4_parser(packet_in packet, out IPv4 ipv4) { /* body omitted */ }
+parser ipv4_parser(packet_in packet, out IPv4 ipv4) { /* ... */ }
 parser main_parser(packet_in packet, out Headers h) {
 	ipv4_parser() instance;
 
@@ -573,10 +628,12 @@ parser main_parser(packet_in packet, out Headers h) {
 \todo[inline]{we should really reorganise this to use bigger headings, this way
 the individual constructs are lost in the text!}
 
+\subsubsection*{Control blocks}
+
 While parsers execute at the very frontier of the pipeline, the bulk of packet
-processing happens in match-action units\todo{previously mentioned?}.
-\acrshort{p4} has another parametrized construct for expressing entire sequences
-of pattern-matching and rewriting steps: \texttt{control} blocks\todo{Add an
+processing happens in the previously mentioned match-action units. \acrshort{p4}
+has another parametrized construct for expressing entire sequences of
+pattern-matching and rewriting steps: \texttt{control} blocks\todo{Add an
 example control block listing}.
 
 A control block has a name and can take type and value parameters. The body of a
@@ -597,19 +654,35 @@ programmer.}. There are two important restrictions on action parameter lists.
 	\item Action parameters cannot have \extern{} types.
 \end{enumerate}
 
-The second major \acrshort{p4} construct that appears exclusively\todo{right?}
-within control blocks are \emph{tables}. Whereas an action specifies the
-operations performed on packet headers when pattern-matching succeeds, a table
-informs a match-action unit of the target how to perform the pattern-matching
-and what actions to invoke.
+The second major \acrshort{p4} construct that appears exclusively within control
+blocks are \emph{tables}. Whereas an action specifies the operations performed
+on packet headers when pattern-matching succeeds, a table informs a match-action
+unit of the target how to perform the pattern-matching and what actions to
+invoke.
 
-Functional programmers will note that tables and actions together seem like a
-low-level decomposition of pattern-matching from Haskell or Scala. This is a
-good analogy, except that, whereas pattern-matching constructs in a programming
-language are typically fixed at compilation time, \acrshort{p4} tables are
-configurable at runtime by the control plane. Furthermore, \acrshort{p4}'s
-pattern-matching operates at the bit level and offers certain string-like
-facilities.\todo{this whole thing should be like an aside or something}
+\begin{tcolorbox}[
+	title={\textbf{Analogy to functional programming}},
+	colback=decoration!5!white,
+	colframe=decoration,
+	fonttitle=\bfseries,
+	arc=0pt,
+	outer arc=0pt,
+	boxrule=0.5pt,
+	top=2pt,
+	bottom=2pt,
+	left=2pt,
+	right=2pt,
+	enlarge top by=1.5\baselineskip,
+	enlarge bottom by=1.5\baselineskip
+]
+	Functional programmers will note that tables and actions together seem like
+	a low-level decomposition of pattern-matching from Haskell or Scala. This is
+	a good analogy, except that, whereas pattern-matching constructs in a
+	programming language are typically fixed at compilation time, \acrshort{p4}
+	tables are configurable at runtime by the control plane. Furthermore,
+	\acrshort{p4}'s pattern-matching operates at the bit level and offers
+	certain string-like facilities.
+\end{tcolorbox}
 
 A \texttt{table} declaration is simultaneously an instantiation in the enclosing
 control block. The declaration lists various properties of the table, given as
@@ -675,9 +748,9 @@ somewhat reminiscent of second-class functions.
 	belowcaptionskip=\medskipamount,
 	language=c
 ]
-action a(in bit<32> x) { /* body omitted */ }
+action a(in bit<32> x) { /* ... */ }
 bit<32> z;
-action b(inout bit<32> x, bit<8> data) { /* body omitted */ }
+action b(inout bit<32> x, bit<8> data) { /* ... */ }
 table t {
 	actions = {
 		// a;
@@ -900,7 +973,7 @@ Listing~\ref{lst:p4-direct-type-invocation}.
 	belowcaptionskip=\medskipamount,
 	language=p4
 ]
-control Callee(/* parameters omitted */) { /* body omitted */ }
+control Callee(/* parameters omitted */) { /* ... */ }
 
 control Caller(/* parameters omitted */) {
 	apply {
@@ -953,7 +1026,7 @@ saves the user from substituting generic parsers and control blocks by hand.
 // a parser with one constructor parameter
 parser GenericParser(packet_in b, out Packet_header p)
                     (bool udpSupport) {
-	// body omitted
+	// ...
 }
 ...
 // the instantiation specifies all constructor parameters
@@ -1063,15 +1136,16 @@ translation.
 constructs that themselves only depend on other compile-time known values. Since
 \acrshort{p4} has no loops, no recursion, and no complex metaprogramming
 facilities, the set of compile-time known values is finite and can be evaluated
-in a single pass.\todo{we don't need to explain \emph{everything}, right?}
+in a single pass.
 
 A \acrshort{p4} program is evaluated in two stages, statically at compile time
 and dynamically at runtime. The notion of compile-time evaluation in
 \acrshort{p4} is closely related to resource allocation of the target device.
 Static evaluation proceeds in the order that declarations appear in the source
-file. It begins at the top level and recurses into lexical scopes.
-
-\todo[inline]{finish this}
+file, beginning at the top level and recursing into lexical scopes. This pass
+resolves compile-time known values and determines the full set of stateful
+objects that need to be allocated in order to accommodate the program on the
+target device.
 
 \subsubsection*{Control plane \acrshort{api}}
 
@@ -1110,4 +1184,19 @@ A \acrshort{p4} program defines the parsers, control blocks, \extern{}s, and
 other constructs that make up the data plane. However, it is up to the target
 architecture to decide how and when are all these execution blocks evaluated at
 runtime. Packet processing systems often operate concurrently, so the \pfs
-specification lays out\todo{finish}
+specification lays out a concurrency model for the data plane.
+
+Without \extern{}s, the semantics of concurrent executions is
+trivial\footnote{Although still very informal, as the concurrency model is only
+described in English and without much care to define every referenced term.}:
+every parser and control block is executed in a separate thread with only
+thread-local storage. Therefore, concurrent executions cannot interfere,
+regardless of their interleaving.
+
+\extern{}s pose a challenge, however, as their instances are shared between
+concurrent executions. The use of \extern{}s can thus lead to data races. To
+combat this, \pfs demands that executions of method calls on \extern{} instances
+are atomic. Moreover, users can place the \texttt{@atomic} annotation on
+arbitrary blocks of code to make their execution atomic as well. The
+specification mandates that a compiler which cannot guarantee the requested
+atomicity must reject the program.
