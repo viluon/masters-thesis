@@ -53,9 +53,8 @@ for accurate diagnostics.
 
 \subsection{Lexical analysis}
 
-The \pfs specification defines a \acrshort{yacc}\todo{use a glossary entry
-instead of an acronym}/Bison grammar for the language. However, this grammar has
-several flaws.
+The \pfs specification defines a \acrshort{yacc}/Bison grammar for the language.
+However, this grammar has several flaws.
 
 For example, it reuses the \texttt{parserTypeDeclaration} non\-terminal in
 \texttt{parserDeclaration}s but imposes extra restrictions: a parser declaration
@@ -105,11 +104,10 @@ channel is write-only.
 Error tolerance at the lexer level means proceeding with lexeme stream
 generation despite nonsensical input. We emit a special error token whenever
 such input is encountered. Additionally, the lexer validates numeric constants,
-which can specify width, base, and signedness\todo{is this a word?}. These
-properties could be out of bounds for a given literal. In these cases, the lexer
-produces\todo{"should produce" language instead? since this is a design chapter,
-wink wink?} a valid token anyway but logs an error-level diagnostic, which is
-reported to the user once lexing completes.
+which can specify width, base, and signedness. These properties could be out of
+bounds for a given literal. In these cases, the lexer should still produce a
+valid token while logging an error-level diagnostic. The server can then report
+the diagnostic to the user once lexing completes.
 
 
 \subsection{The preprocessor}
@@ -118,10 +116,9 @@ reported to the user once lexing completes.
 directly in the specification. However, it does not ask implementors to support
 the entirety of \texttt{cpp}. Notably, only simple, parameter-less macros are
 allowed. This is already enough to necessitate running the preprocessor before
-starting the parser, however. Consider the code in
-Listing~\ref{lst:p4pp}\todo{p4 syntax would be nice}. These examples show how
-grammatically invalid code may become valid and vice versa, based only on the
-right-hand sides of preprocessor macros.
+starting the parser, however. Consider the code in Listing~\ref{lst:p4pp}. These
+examples show how grammatically invalid code may become valid and vice versa,
+based only on the right-hand sides of preprocessor macros.
 
 An important consideration for a correct implementation of preprocessor
 directives is their context-sensitive nature. Expressions for conditional
@@ -181,7 +178,7 @@ data from users. But does this matter enough to bother with a study?}.
 	float,
 	abovecaptionskip=-\medskipamount,
 	belowcaptionskip=\medskipamount,
-	language=c
+	language=p4
 ]
 #define op +
 // #define op 2
@@ -274,9 +271,8 @@ defines an \texttt{apply\_edit} method that acquires a write lock of the input
 sequence, applies the change, invalidates relevant entries in the memoization
 table, and releases the lock.
 
-To initiate parsing, the user invokes the \texttt{\_match} method\footnote{Named
-as such because \texttt{match} is a Rust keyword.}, which acquires a read lock
-on the input for the duration of parsing.
+To initiate parsing, the user invokes the \texttt{parse} method, which acquires
+a read lock on the input for the duration of parsing.
 
 
 \begin{lstlisting}[
@@ -361,16 +357,16 @@ non-terminals deeper down the parse tree have no way of distinguishing between
 an error in the input that will ultimately cause the overall parse to fail, and
 an error that can be recovered from in an ordered choice operator higher up.
 
-To address this problem, \citeauthor{maidl2013exception} conservatively extended
-the \acrshort{peg} formalism with \emph{error labels}\cite{maidl2013exception}.
-Error labels semantically\footnote{In the sense that we are adding semantic
-information to the process that analyzes syntax.} stand for errors that a
-grammar rule can raise when encountering unexpected input. This differentiates
-errors caused by nonsensical input from benign parse failures, and thus solves
-the problem of accurate error reporting in \acrlong{peg}s\footnote{At the
-expense of extensive manual annotations of the grammar. See
-\cite{demedeiros2020automatic} for a possible remedy.}. The extension comprises
-several components:
+To address this problem, \linkedciteauthor{maidl2013exception} conservatively
+extended the \acrshort{peg} formalism with \emph{error
+labels}\cite{maidl2013exception}. Error labels semantically\footnote{In the
+sense that we are adding semantic information to the process that analyzes
+syntax.} stand for errors that a grammar rule can raise when encountering
+unexpected input. This differentiates errors caused by nonsensical input from
+benign parse failures, and thus solves the problem of accurate error reporting
+in \acrlong{peg}s\footnote{At the expense of extensive manual annotations of the
+grammar. See \cite{demedeiros2020automatic} for a possible remedy.}. The
+extension comprises several components:
 
 \todo[inline]{we actually do want a full syntax for \acrlong{peg}s}
 
@@ -401,6 +397,9 @@ also makes location tracking trivial.
 
 \subsubsection*{Tracking source locations}
 
+\todo[inline]{screw this, mention instead paths of FileIds and the thing with
+spans in text vs spans in tokens}
+
 However, our setting complicates location tracking. Source locations are an
 important consideration for any incremental parser. A naive implementation, that
 includes the source locations in the parse tree, leads to a linear amount of
@@ -415,7 +414,8 @@ Fortunately, the nature of the incremental parsing approach of
 between
 
 \todo[inline]{mention that we can trade off memory for speed in the preprocessor
-by controlling memoization in a fine-grained manner using Salsa.}
+by controlling memoization in a fine-grained manner using Salsa (storing
+preprocessor state if need be).}
 
 \todo[inline]{ example of complex preprocessor logic
 	% https://github.com/Princeton-Cabernet/p4-projects/blob/10a4b9ce25b725b5269ba857470f63c96f82c645/AES.p4app/AES.p4#L18
