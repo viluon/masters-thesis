@@ -2,18 +2,6 @@
 \chapter{Design}
 %---------------%
 
-\todo[inline]{the design of the p4 language server, what it learned from
-rust-analyzer, etc}
-
-\begin{itemize}
-	\item intention to do everything in-editor, Rust to WebAssembly
-	\item cannot reuse the open-source frontend, not error-tolerant, difficult
-	to work with, poor diagnostics
-	\item needs to adapt to various backends and architectures easily
-	\item open-source project, no point in keeping it closed, want to encourage
-	contributions from the community
-\end{itemize}
-
 The high-level architecture of the \acrshort{p4} Analyzer project marks a
 departure from conventional language server designs in that it primarily targets
 WebAssembly and aims to run entirely within the Visual Studio Code editor. This
@@ -241,6 +229,36 @@ greedily attempts to match alternatives in order. The right-hand side of a
 \acrlong{peg} rule can also contain predicates, which attempt to match without
 consuming input. Predicates are useful for positive and negative look\-ahead.
 
+\begin{figure}[h]
+	\centering
+	\begin{align*}
+		e ::= & \hspace{2pt} \varepsilon & \text{(empty string)} \\
+		\mid  & \hspace{2pt} \texttt{t}  & \text{(terminal)} \\
+		\mid  & \hspace{2pt} e_1 e_2     & \text{(sequence)} \\
+		\mid  & \hspace{2pt} e_1 | e_2   & \text{(ordered choice)} \\
+		\mid  & \hspace{2pt} e^*         & \text{(zero or more)} \\
+		\mid  & \hspace{2pt} e^+         & \text{(one or more)} \\
+		\mid  & \hspace{2pt} e?          & \text{(zero or one)} \\
+		\mid  & \hspace{2pt} \&e         & \text{(positive lookahead)} \\
+		\mid  & \hspace{2pt} !e          & \text{(negative lookahead)} \\
+		\texttt{t} \in & \hspace{2pt} \text{tokens}
+	\end{align*}
+	\caption{Syntax of \acrlong{peg}s.}
+	\label{fig:peg-syntax}
+\end{figure}
+
+The syntax of typical \acrlong{peg}s can be seen in Figure~\ref{fig:peg-syntax}.
+Our grammars are slightly simpler: we implement neither positive lookahead nor
+the $+$ and $?$ operators. Positive lookahead can be simulated by nesting two
+negative lookaheads, and the $+$ and $?$ operators can desugar to combinations
+of general repetition, ordered choice, and the empty string. These decisions
+were made to simplify the parser implementation, but in turn complicate the
+grammar with verbose and repetitive definitions. It remains to be seen whether
+they survive future refactorings. A further restriction is that all grammar
+rules must contain at most one level of nesting, i.e. the grammar must be given
+in a normal form where the immediate subtrees of a rule's right-hand side are
+all non-terminals.
+
 Our design differentiates between a generic parser library and a parser built on
 it. Grammars are defined using a small \acrshort{dsl} implemented with Rust's
 declarative macros. An example can be seen in
@@ -365,10 +383,6 @@ in \acrlong{peg}s\footnote{At the expense of extensive manual annotations of the
 grammar. See \cite{demedeiros2020automatic} for a possible remedy.}. The
 extension comprises several components:
 
-\todo[inline]{we actually do want a full syntax for \acrlong{peg}s}
-
-\todo[inline]{expand on the grammar DSL}
-
 \begin{itemize}
 	\item The \acrlong{peg} is extended with a finite set of labels $L$.
 	\item A special failure label \texttt{fail}, $\texttt{fail} \not \in L$, is
@@ -453,6 +467,8 @@ the grammar. That is, nodes in a \acrshort{cst} are alterations, repetitions,
 sequences, etc. Analysis code would instead prefer a typed \acrshort{api} to
 access the semantic, abstract nodes in the syntax tree, without interference
 from trivia tokens and non-terminals.
+
+\subsubsection*{Tree abstractions}
 
 These use cases are covered by \acrshort{ast} translation. The \texttt{ast}
 module provides three layers of abstraction over \acrshort{cst}s:
@@ -601,4 +617,65 @@ $(impl [<$non_terminal:camel>] {
 		}
 	)+
 })?
+\end{lstlisting}
+
+The entire \acrshort{ast} translation layer was inspired by the internals of
+rust-analyzer\footnote{\url{https://rust-analyzer.github.io/}}, an
+\acrshort{lsp}-compliant language server for Rust. While rust-analyzer's syntax
+tree manipulations work with a different underlying representation and rely on a
+recursive descent parser, the high-level interfaces, the split between
+\texttt{GreenNode}s, \texttt{SyntaxNode}s, and \texttt{AstNode}s, as well as the
+heavy reliance on code generation, are all motivated directly by rust-analyzer's
+developer documentation. We would like to thank the rust-analyzer developers for
+maintaining a comprehensive high-level documentation of their approach and
+including known alternative approaches, e.g. from Roslyn and IntelliJ, that
+other developers can learn from.
+
+\subsubsection*{Identifying trivia nodes}
+
+The reader will observe that we have carelessly included a previously
+undiscussed type in the \texttt{ast\_node!} macro's body: the
+\texttt{TriviaClass} \texttt{enum}.
+Listing~\ref{lst:ast_node_macro_body_methods} makes it quite clear that the
+\texttt{TriviaClass} type determines which subtrees to iterate over when
+invoking a generated method of an \texttt{AstNode} type.
+
+Our grammar \acrshort{dsl} has a few extra features. The author of a grammar can
+identify the trivia non-terminals by including \emph{annotations} in the grammar
+definition. Listing~\ref{lst:trivia_annotation} shows how to use these
+annotations. By default, every non-terminal has a \texttt{TriviaClass} of
+\texttt{Keep}, which means it will be enumerated by an \texttt{AstNode}'s
+iterator.
+
+It is worth noting that the macro for defining the \acrshort{p4} grammar is also
+the source of truth for the set of non-terminals: it simultaneously defines the
+\texttt{P4GrammarRules} \texttt{enum}. This is very useful for developers, since
+it avoids code duplication and enables features like go-to definition or find
+references right in the grammar definition. Using an \texttt{enum} to represent
+non-terminals is also a requirement for exhaustiveness checking, in case any
+later steps in the pipeline require it. The grammar \acrshort{dsl} forwards
+documentation comments above productions to the variants of
+\texttt{P4GrammarRules}.
+
+\begin{lstlisting}[
+	language=Rust,
+	tabsize=4,
+	float,
+	caption={An example of trivia annotations and doc comments in the grammar
+	\acrshort{dsl}.},
+	label={lst:trivia_annotation},
+]
+grammar! {
+	@SkipNodeAndChildren at_symbol close_paren;
+	@SkipNodeOnly maybe_direction parameter_comma;
+
+	/// Semantic non-terminal that marks an identifier as a definition.
+	///
+	/// For example, in `parser MyParser<T>(inout T x) { }`,
+	/// `MyParser`, `T`, and `x` are all definitions,
+	/// and possible targets for go-to definition.
+	definition => ident;
+
+	// other non-terminals omitted
+}
 \end{lstlisting}
