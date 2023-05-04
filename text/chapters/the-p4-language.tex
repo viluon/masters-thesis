@@ -235,7 +235,7 @@ purely conceptual.
 	bits required to store the expression,}'' clearly forgetting to take the
 	\texttt{maxSize*} functions into account}
 
-\subsection{Syntax}
+\subsection{Syntax and semantics}
 
 \todo[inline]{
 	describe headers and their relation to structs, explain annotations
@@ -268,6 +268,18 @@ It uses prefix notation for typed bindings, braces for lexical scoping blocks,
 and semicolons to separate statements. However, instead of functions or
 procedures, the dominant top level constructs for executable code are control
 blocks and parsers, neither of which has a close relative in the world of conventional general-purpose computing.
+
+The semantics of \pfs is defined entirely in terms of abstract machines
+executing imperative code. A conforming compiler is free to rewrite the \pfs
+program as long as it maintains the observable behaviour of all abstract
+machines involved. Unfortunately, the specification gives no formal treatment
+of these machines; they are described only in natural language and pseudocode.
+
+The authors of the specification acknowledge that undefined behaviour has been
+the cause of many problems in conventional languages and deliberately try to
+avoid it. However, several constructs in the language are still underspecified
+and users may run into undefined behaviour, for example by accessing the field
+of an invalid header.
 
 \subsection*{Imports and the core library}
 
@@ -433,6 +445,36 @@ externs should be described first in the syntax section?}, but it is
 instantiated implicitly for every parser parameter of type \texttt{packet\_in}.
 This allows parser states to invoke the methods of the \extern{}, shown in
 Listing~\ref{lst:p4-prsr-packet-in}.
+
+\subsubsection*{Parser abstract machine}
+
+A parser semantically manipulates a \texttt{ParserModel} data structure.
+
+\begin{lstlisting}[
+	caption={~The conceptual model of the state of a \acrshort{p4} parser.},
+	label=lst:p4-parser-model,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=c
+]
+ParserModel {
+	error       parseError;
+	onPacketArrival(packet p) {
+		ParserModel.parseError = error.NoError;
+		goto start;
+	}
+}
+\end{lstlisting}
+
+The meaning of \texttt{accept} and \texttt{reject} states is
+architecture-dependent. For example, a rejected packet may be dropped or
+passed to the next block of the processing pipeline.
+
+Parser transitions are analogous to \texttt{goto} statements or parameter-less
+tail calls.
 
 \begin{lstlisting}[
 	caption={~The intrinsic \extern{} that facilitates data extraction.},
@@ -867,93 +909,7 @@ Tables can specify additional properties outside of the base set provided by the
 \pfs specification\footnote{The specification lists several motivated
 examples.}.
 
-\subsection{Semantics}
-
-The semantics of \pfs is defined entirely in terms of abstract machines
-executing imperative code. A conforming compiler is free to rewrite the \pfs
-program as long as it maintains the observable behaviour of all abstract
-machines involved. Unfortunately, the specification gives no formal treatment
-of these machines; they are described only in natural language and pseudocode.
-
-The authors of the specification acknowledge that undefined behaviour has been
-the cause of many problems in conventional languages and deliberately try to
-avoid it. However, several constructs in the language are still underspecified
-and users may run into undefined behaviour, for example by accessing the field
-of an invalid header.
-
-
-\subsubsection*{Parser abstract machine}
-
-A parser conceptually manipulates a \texttt{ParserModel} data structure.
-
-\begin{lstlisting}[
-	caption={~The conceptual model of the state of a \acrshort{p4} parser.},
-	label=lst:p4-parser-model,
-	captionpos=t,
-	tabsize=4,
-	float,
-	abovecaptionskip=-\medskipamount,
-	belowcaptionskip=\medskipamount,
-	language=c
-]
-ParserModel {
-	error       parseError;
-	onPacketArrival(packet p) {
-		ParserModel.parseError = error.NoError;
-		goto start;
-	}
-}
-\end{lstlisting}
-
-The meaning of \texttt{accept} and \texttt{reject} states is
-architecture-dependent. For example, a rejected packet may be dropped or
-passed to the next block of the processing pipeline.
-
-Parser transitions are analogous to \texttt{goto} statements or parameter-less
-tail calls.
-
-\subsubsection*{Calling convention}
-
-In order to simplify reasoning about function-like constructs, \pfs follows the
-\emph{call by copy in / copy out} calling convention. The specification
-describes the exact steps a conforming implementation needs to go follow in
-general\footnote{Compiler optimizations could, in specific cases, eliminate some
-of these steps, provided prior analysis determines such optimizations correct.}
-to evaluate a function call expression.
-
-\begin{displayquote}
-	\emph{\begin{enumerate}
-		\item Arguments are evaluated from left to right as they appear in the
-		function call expression.
-		\item If a parameter has a default value and no corresponding argument
-		is supplied, the default value is used as an argument.
-		\item For each \texttt{out} and \texttt{inout} argument the
-		corresponding l-value is saved
-		(so it cannot be changed by the evaluation of the following arguments).
-		This is important if the argument contains indexing operations into a
-		header stack.
-		\item The value of each argument is saved into a temporary.
-		\item The function is invoked with the temporaries as arguments. We are
-		guaranteed that the temporaries that are passed as arguments are never
-		aliased to each other, so this ``generated'' function call can be
-		implemented using call-by-reference if supported by the architecture.
-		\item On function return, the temporaries that correspond to
-		\texttt{out} or
-		\texttt{inout} arguments are copied in order from left to right into the l-values
-		saved in Step 3.
-	\end{enumerate}}
-
-	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
-\end{displayquote}
-
-The calling convention gives calls\footnote{Of all function-like constructs.} a
-semantics that ensures arguments cannot alias one another and impure functions
-cannot hold references to \acrshort{p4} code. This design is ultimately
-motivated by the need to control the side effects of \extern{} functions and
-methods, which are arbitrarily powerful. The copy in / copy out calling
-convention lets compilers reason about programs in the presence of \extern{}s.
-
-\subsubsection*{Control blocks}
+\subsubsection*{Control block semantics}
 
 Invoking actions: actions can be invoked either implicitly or explicitly.
 Implicit invocations come from tables during match-action processing. Explicit
@@ -1062,7 +1018,8 @@ control Caller(/* parameters omitted */) {
 
 \end{lstlisting}
 
-\subsubsection*{Constructor parametrization}
+\subsection*{Abstracting parsers and control blocks with constructor
+parametrization}
 
 Although parsers and control blocks take parameters, these only define the
 interface between \acrshort{p4} code and the target architecture. This makes
@@ -1100,7 +1057,6 @@ parser GenericParser(packet_in b, out Packet_header p)
 // topParser is a GenericParser where udpSupport = false
 GenericParser(false) topParser;
 \end{lstlisting}
-
 
 \subsubsection*{Deparsing} \label{sec:p4-deparsing}
 
@@ -1187,6 +1143,48 @@ extern packet_out {
 }
 \end{lstlisting}
 
+
+\todo[inline]{wheeere do we put the calling convention?}
+\subsubsection*{Calling convention}
+
+In order to simplify reasoning about function-like constructs, \pfs follows the
+\emph{call by copy in / copy out} calling convention. The specification
+describes the exact steps a conforming implementation needs to go follow in
+general\footnote{Compiler optimizations could, in specific cases, eliminate some
+of these steps, provided prior analysis determines such optimizations correct.}
+to evaluate a function call expression.
+
+\begin{displayquote}
+	\emph{\begin{enumerate}
+		\item Arguments are evaluated from left to right as they appear in the
+		function call expression.
+		\item If a parameter has a default value and no corresponding argument
+		is supplied, the default value is used as an argument.
+		\item For each \texttt{out} and \texttt{inout} argument the
+		corresponding l-value is saved
+		(so it cannot be changed by the evaluation of the following arguments).
+		This is important if the argument contains indexing operations into a
+		header stack.
+		\item The value of each argument is saved into a temporary.
+		\item The function is invoked with the temporaries as arguments. We are
+		guaranteed that the temporaries that are passed as arguments are never
+		aliased to each other, so this ``generated'' function call can be
+		implemented using call-by-reference if supported by the architecture.
+		\item On function return, the temporaries that correspond to
+		\texttt{out} or
+		\texttt{inout} arguments are copied in order from left to right into the l-values
+		saved in Step 3.
+	\end{enumerate}}
+
+	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
+\end{displayquote}
+
+The calling convention gives calls\footnote{Of all function-like constructs.} a
+semantics that ensures arguments cannot alias one another and impure functions
+cannot hold references to \acrshort{p4} code. This design is ultimately
+motivated by the need to control the side effects of \extern{} functions and
+methods, which are arbitrarily powerful. The copy in / copy out calling
+convention lets compilers reason about programs in the presence of \extern{}s.
 
 \subsubsection*{The \acrshort{p4} abstract machine}
 
