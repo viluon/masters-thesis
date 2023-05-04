@@ -23,7 +23,7 @@ security teams involved.
 
 The main mode of operation is thus as follows: the language server runs in a
 WebAssembly worker of the \acrshort{p4} Analyzer VS Code extension. The
-extension itself defines a simple TextMate\todo{reference} grammar specification
+extension itself defines a simple TextMate\cite{textmate} grammar specification
 and serves as a thin client for the server. The main bulk of \acrshort{lsp}
 functionality is delegated to the editor. VS Code forwards edits to open files
 to the language server, which updates its model of the workspace. When VS Code
@@ -167,8 +167,7 @@ preprocessor could be reasonably expected to either skip over the first
 \texttt{\#else}'s body, the second \texttt{\#else}'s body, or assume either of
 the directives was inserted by accident and pretend it is not a part of the
 input stream. We choose to skip the second \texttt{\#else}'s body in our design,
-but other strategies are equally valid\todo{maybe it'd be better to look at some
-data from users. But does this matter enough to bother with a study?}.
+but other strategies are equally valid.
 
 \begin{lstlisting}[
 	caption={~\pfs preprocessor example},
@@ -211,16 +210,14 @@ The next natural step in the pipeline is the act of finding the productions of a
 up to this point are fairly simplistic and efficient, parsing is a
 resource-intensive process. A language server is expected to provide real-time
 feedback to the developer, including auto-completion suggestions updated with
-every keypress\todo{the lexer can identify a caret inside a (possibly
-unfinished!) comment or string. Maybe we can learn from that for naive
-lexer-based auto-completion?}. Low latency is crucial to the end-user and the
-parser lies on every critical path from user input to high-level results shown
-in the editor's interface. At the same time, a typical \pfs program is likely to
-consist of a long prefix that does not change between edits and a
-user-maintained suffix that changes frequently. This is because a \pfs program
-usually begins with \texttt{\#include} directives referencing platform-specific
-files with constants, error codes, \extern{} definitions and other shared code.
-These constraints and conditions are a very good fit for the field of
+every keypress. Low latency is crucial to the end-user and the parser lies on
+every critical path from user input to high-level results shown in the editor's
+interface. At the same time, a typical \pfs program is likely to consist of a
+long prefix that does not change between edits and a user-maintained suffix that
+changes frequently. This is because a \pfs program usually begins with
+\texttt{\#include} directives referencing platform-specific files with
+constants, error codes, \extern{} definitions and other shared code. These
+constraints and conditions are a very good fit for the field of
 \emph{incremental parsing}.
 
 An incremental parser aims to reuse previously computed information about the
@@ -370,6 +367,8 @@ extension comprises several components:
 
 \todo[inline]{we actually do want a full syntax for \acrlong{peg}s}
 
+\todo[inline]{expand on the grammar DSL}
+
 \begin{itemize}
 	\item The \acrlong{peg} is extended with a finite set of labels $L$.
 	\item A special failure label \texttt{fail}, $\texttt{fail} \not \in L$, is
@@ -391,32 +390,215 @@ mechanism is not necessary for error recovery, so we will not discuss it
 further.
 
 Error labels returned by the parsing process can be mapped to readable error
-messages. Because the parsing process terminates early, the set of expected
-tokens is kept accurate. In addition, having a single, obvious point of failure
-also makes location tracking trivial.
+messages. Because parsing terminates early, the set of expected tokens is kept
+accurate. In addition, having a single, obvious point of failure also makes
+location tracking trivial.
 
 \subsubsection*{Tracking source locations}
 
-\todo[inline]{screw this, mention instead paths of FileIds and the thing with
-spans in text vs spans in tokens}
+Tracking precise source locations is a common requirement for compilers and is
+arguably even more important for language servers. Our lexer provides the
+precise span of source code for every token and our preprocessor keeps track of
+where a token came from during file inclusion. It is important to track the
+entire ``inclusion path'' for every token, which consists of segments of file
+identifiers and spans, since a single file can be included multiple times from
+multiple locations, with or without detours through other files.
 
-However, our setting complicates location tracking. Source locations are an
-important consideration for any incremental parser. A naive implementation, that
-includes the source locations in the parse tree, leads to a linear amount of
-work per edit, as the parser must recompute the source location of every node.
-This would largely defeat the purpose of incremental parsing. At the same time,
-source locations are important for features such as go to definition, or
-diagnostics generated by semantic analysis in subsequent processing steps. While
-we could keep all positions relative,
+The consideration for the parser here is twofold, namely, to continue to track
+the source locations of tokens and grammar productions in the format provided by
+the preprocessor, and to maintain incrementality while doing so.
 
-Fortunately, the nature of the incremental parsing approach of
-\citeauthor{dubroy2017incremental-packrat-parsing} permits an interesting hybrid
-between
+The first consideration requires some care in pattern-matching of tokens -- the
+grammar \acrshort{dsl} is not intended to pattern-match on token inclusion
+paths. Additionally, an important question is how to assign inclusion paths to
+grammar productions. This is trivial for terminals, lookahead, and alterations.
+The interesting case is how to handle sequences and repetitions. While a grammar
+production could, in theory, store the set of all inclusion paths that it
+depends on, doing so is wasteful and not very helpful. Instead, we can inspect
+the inclusion paths of the first and the last token in the sequence or
+repetition. If these two paths match (meaning they differ at most in the last
+span), we can simply use this path, adjusting the final span. This loses
+information about tokens from the middle of the sequence, but note that subtrees
+will still include it. If the two paths do not match, we can take their longest
+common suffix, again adjusting the last span\footnote{Note that our
+implementation is incomplete in this regard and presently only reports token
+spans local to the parsed file.}.
 
-\todo[inline]{mention that we can trade off memory for speed in the preprocessor
-by controlling memoization in a fine-grained manner using Salsa (storing
-preprocessor state if need be).}
+To maintain incrementality, the parser needs to reuse previous parse results in
+response to small changes of the input. Using actual token spans would be
+problematic, since a single character change could invalidate the spans of
+potentially all tokens in the file. Instead, the parser needs to work with the
+relative notion of token count. Every \acrshort{cst} node stores the number of
+tokens that it spans (the number of tokens in its subtree). A traversal of the
+\acrshort{cst} can then reconstruct the absolute offset of each node without
+ever explicitly storing it.
 
-\todo[inline]{ example of complex preprocessor logic
-	% https://github.com/Princeton-Cabernet/p4-projects/blob/10a4b9ce25b725b5269ba857470f63c96f82c645/AES.p4app/AES.p4#L18
+One more thing to note here is that the units of offsets in the \acrshort{cst},
+and therefore of the reconstructed spans, are individual tokens. These need to
+be converted to spans in the source text before being reported to the user.
+
+\subsection{Abstract syntax trees}
+
+The presented packrat parser produces a \emph{\acrfull{cst}}. A \acrlong{cst} is
+a full-fidelity representation of a grammar production, meaning it includes all
+tokens and non-terminals, including comments, whitespace, and intermediate
+non-terminals introduced to circumvent the constraints of the grammar
+\acrshort{dsl}. Preserving full-fidelity syntax trees is important to maintain
+the parser's incremental performance and avoid expensive backtracking, but
+\acrshort{cst}s include a lot of state that is unimportant to further processing
+and analysis steps.
+
+Moreover, the shape and types of these trees are determined by the structure of
+the grammar. That is, nodes in a \acrshort{cst} are alterations, repetitions,
+sequences, etc. Analysis code would instead prefer a typed \acrshort{api} to
+access the semantic, abstract nodes in the syntax tree, without interference
+from trivia tokens and non-terminals.
+
+These use cases are covered by \acrshort{ast} translation. The \texttt{ast}
+module provides three layers of abstraction over \acrshort{cst}s:
+\texttt{GreenNode}s, \texttt{SyntaxNode}s, and \texttt{AstNode}s.
+
+A \texttt{GreenNode} wraps a successful parsing result (an
+\texttt{ExistingMatch<P4GrammarRules, Token>}) in a reference-counted cell, to
+simplify reuse. It provides a \texttt{children} method that returns an iterator
+over the children of a node. This iterator is a heap-allocated \texttt{dyn} type
+to smooth over differences in the backing \acrshort{cst} node\footnote{Future
+extension and optimisation efforts may decide to change the \acrshort{cst}
+representation to avoid such indirections in tree traversals.}. The children are
+\texttt{GreenNode}s themselves, wrapped transparently by the iterator.
+\texttt{GreenNode}s form immutable, functional trees. They are cheap to clone
+(thanks to reference counting) and can be structurally shared, although not
+between threads\footnote{This could be amended by using atomic reference
+counting cells instead.}.
+
+A \texttt{SyntaxNode} is a zipper data structure that maintains a parent pointer
+(and therefore the path to the root of the tree) along with the absolute offset
+in tokens. It again provides a \texttt{children} method with an iterator that
+yields \texttt{SyntaxNode}s. These zippers are useful for traversing
+\texttt{GreenNode}s. A \texttt{SyntaxNode} also carries a reference to the
+grammar definition and keeps track of the non-terminal that it is in, by storing
+it alongside the parent pointer. This is important, as neither the
+\texttt{GreenNode} nor the \acrshort{cst} provide this information.
+
+Finally, an \acrshort{ast} node is a typed wrapper around a \texttt{SyntaxNode}.
+Unlike the previous two types, it is not a single \texttt{struct}. Instead,
+there is a different type for each \acrshort{ast} node, but all of them share a
+common interface via the \texttt{AstNode} trait. This trait provides methods to
+cast a \texttt{SyntaxNode} to a particular \texttt{AstNode} type, to access the
+backing \texttt{SyntaxNode}, and to intuit the node's offset and span.
+
+Many \acrshort{ast} nodes share the binary representation with their underlying
+\texttt{SyntaxNode}s, meaning they only have a single field of the
+\texttt{SyntaxNode} type. Additionally, the implementations of the
+\texttt{AstNode} trait are often structurally similar. To avoid code duplication
+and simplify maintenance, the \texttt{ast} module provides the
+\texttt{ast\_node!} macro, through which most \acrshort{ast} nodes are defined.
+
+\begin{lstlisting}[
+	language=Rust,
+	tabsize=4,
+	float,
+	caption={The signature of the \texttt{ast\_node!} macro.},
+	label={lst:ast_node_macro},
+]
+macro_rules! ast_node {
+	($non_terminal:ident $(, methods: $($method:ident),+)?) => {
+		paste! {
+			// see later listings for the body of this macro
+		}
+	};
 }
+\end{lstlisting}
+
+The signature and top level of the macro are shown in
+Listing~\ref{lst:ast_node_macro}. Note the inclusion of the \texttt{paste!}
+block: the \texttt{paste} crate\footnote{\url{https://crates.io/crates/paste}}
+provides means for converting the case of identifiers. We use this throughout
+the \texttt{ast\_node!} macro to generate the \texttt{struct} name from the name
+of the non-terminal. Rust types are conventionally written in camel case while
+methods, as well as our non-terminals, have snake case names.
+
+The body of the macro defines the \texttt{struct} and implements the
+\texttt{AstNode} trait for it. To generate documentation comments, the macro's
+body gives \acrshort{ast} node \texttt{struct}s the \texttt{doc} attribute. The
+line can be seen below, it was omitted from
+Listing~\ref{lst:ast_node_macro_body} to avoid confusing the lexer:
+
+\texttt{\#[doc = "AST node for [`P4GrammarRules::" \$non\_terminal "`]."]}
+
+\begin{lstlisting}[
+	language=Rust,
+	tabsize=4,
+	float,
+	caption={The main body of the \texttt{ast\_node!} macro generates newtypes for \texttt{SyntaxNode}s and implements \texttt{AstNode} for them.},
+	label={lst:ast_node_macro_body},
+]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct [<$non_terminal:camel>] {
+	syntax: SyntaxNode,
+}
+
+impl AstNode for [<$non_terminal:camel>] {
+	fn can_cast(node: &SyntaxNode) -> bool {
+		node.kind() == P4GrammarRules::$non_terminal
+	}
+
+	fn cast(node: SyntaxNode) -> Option<Self> {
+		if node.kind() == P4GrammarRules::$non_terminal {
+			Some(Self { syntax: node })
+		} else {
+			None
+		}
+	}
+
+	fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+
+// continues with optional methods
+\end{lstlisting}
+
+Finally, the invocation of \texttt{ast\_node!} can optionally contain a list of
+methods to implement on the \texttt{struct} itself, outside the scope of the
+\texttt{AstNode} trait. The implementation of this functionality can be seen in
+Listing~\ref{lst:ast_node_macro_body_methods}. These generated methods provide
+type-safe access to children while transparently handling both the skipping of
+trivia nodes and invalid underlying \acrshort{cst}s. Each returns an iterator
+without a guarantee of exactly how many children will be iterated over,
+smoothing over issues of arity. It is up to the users of this \acrshort{api} to
+detect and report such errors.
+
+\begin{lstlisting}[
+	language=Rust,
+	tabsize=4,
+	float,
+	caption={The optional methods section of the \texttt{ast\_node!}
+	macro's body.},
+	label={lst:ast_node_macro_body_methods},
+]
+$(impl [<$non_terminal:camel>] {
+	$(
+		#[doc = "Fetch the `" $method "` child of this node."]
+		pub fn $method(
+			&self
+		) -> impl Iterator<Item = [<$method:camel>]> {
+			fn go(
+				node: SyntaxNode
+			) -> Box<dyn Iterator<Item = SyntaxNode>> {
+				match node.trivia_class() {
+					TriviaClass::SkipNodeAndChildren =>
+						Box::new(std::iter::empty()),
+					TriviaClass::SkipNodeOnly =>
+						Box::new(node.children().flat_map(go)),
+					TriviaClass::Keep =>
+						Box::new(std::iter::once(node)),
+				}
+			}
+
+			self.syntax()
+				.children()
+				.flat_map(go)
+				.filter_map([<$method:camel>]::cast)
+		}
+	)+
+})?
+\end{lstlisting}
