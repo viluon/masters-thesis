@@ -23,8 +23,7 @@ also compiles to a native binary that executes in a standalone process and
 communicates with an arbitrary \acrshort{lsp}-compliant client over a socket.
 However, the standalone language server requires support for certain features
 related to filesystem functionality that fall outside the protocol
-specification. We will discuss these in-depth later\todo{make sure this is
-indeed the case, put a reference here}.
+specification. We will discuss these later.
 
 %-----------------------------------------------%
 \section{The \pdfacrshort{p4} Analyzer pipeline}
@@ -729,3 +728,18 @@ All these functionalities are packaged up in the \texttt{Analyzer} type provided
 by the \texttt{analyzer-core} crate. This is the single point of contact between
 the analyzer core and the surrounding machinery for \acrshort{lsp} integration.
 The core knows nothing of the protocol used to communicate with clients.
+
+\subsection{Integrating with the file system}
+
+A major simplification in the \acrshort{p4} Analyzer design compared to
+rust-analyzer is that we rely on a single source of truth for the contents of
+buffers and files on-disk alike. All of these are provided by the editor.
+
+Updates to open files are already handled by \acrshort{lsp}, but an
+\texttt{\#include} directive pointing to an unopened file would pose a problem.
+To work around this, we rely on VS Code's workspace \acrshort{api}, which allows
+an extension to watch for changes to unopened files.
+
+The reason why \acrshort{p4} Analyzer does not follow this approach is
+historical: the addition of the workspace \acrshort{api} to VS Code is a recent
+development that has not yet made it to other editors.

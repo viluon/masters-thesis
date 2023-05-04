@@ -227,14 +227,6 @@ user includes metadata explicitly in the packet headers. In other words, the
 user metadata channel in P4\textsubscript{16}'s abstract forwarding model is
 purely conceptual.
 
-\todo[inline]{in discussing the subpar nature of the spec, include examples of
-	mistakes.
-	\href{https://p4.org/p4-spec/docs/P4-16-v-1.2.3.html\#sec-minsizeinbits}
-	{compile-time size determination} mentions ``\emph{Each of these method
-	calls evaluate to compile-time known values that return the minimum size in
-	bits required to store the expression,}'' clearly forgetting to take the
-	\texttt{maxSize*} functions into account}
-
 \subsection{Syntax and semantics}
 
 % relevant p4 spec sections
@@ -317,7 +309,8 @@ constructors:
 \begin{itemize}
 	\item \texttt{enum}
 	\item \texttt{header}, conceptually a \texttt{struct} with an implicit bit
-	indicating validity.
+	indicating validity. The validity of a header is determined by a parser: a
+	header is valid if the parser that loads it ends in the accepting state.
 	\item header stacks
 	\item \texttt{struct}, as known from C.
 	\item \texttt{header\_union}
@@ -601,13 +594,10 @@ Another parser-specific construct facilitates the computation of transition
 targets by pattern-matching on extracted data. The \texttt{select} expression
 tries to match a value against a number of patterns and evaluates to a state, if
 successful. Otherwise, it triggers a runtime error with code
-\texttt{error.NoMatch}\todo{check that we explain error codes prior to this}.
-The patterns of a \texttt{select} expression can contain integer literals, bit
-masks, ranges, don't-care values, tuples (when matching on multiple values
-simultaneously), or, on some architectures, \textit{parser value sets} specified
-at runtime by the control plane.\todo{one snippet to rule them all, one snippet
-to find them, one snippet to bring them all and in the \LaTeX{} bind them. \\ in
-other words, let's get a comprehensive example for everything.}
+\texttt{error.NoMatch}. The patterns of a \texttt{select} expression can contain
+integer literals, bit masks, ranges, don't-care values, tuples (when matching on
+multiple values simultaneously), or, on some architectures, \textit{parser value
+sets} specified at runtime by the control plane.
 
 While error-handling already happens implicitly in \texttt{select} expressions,
 the \texttt{verify} statement, defined in Listing~\ref{lst:p4-prsr-verify},
@@ -1149,9 +1139,8 @@ packet buffer. The behaviour of a call to \texttt{emit} has different semantics,
 depending on the type of data being emitted.
 
 \begin{description}
-	\item[Headers] are emitted only if valid\todo{discuss header validity in the
-	parser semantics section}. If the header is invalid, the call to
-	\texttt{emit} behaves like a no-op.
+	\item[Headers] are emitted only if valid. If the header is invalid, the call
+	to \texttt{emit} behaves like a no-op.
 
 	\item[Header stacks] have their elements emitted recursively.
 
@@ -1254,13 +1243,12 @@ convention lets compilers reason about programs in the presence of \extern{}s.
 \subsection*{The \acrshort{p4} abstract machine}
 
 Throughout this chapter, we have occasionally referred to some values as
-``evaluated at compile time'' or ``compile time -bound.''\todo{verify these
-references actually happened} A reader familiar with staged programming,
-dependent types, or C++ template instantiation may worry for the compiler
-performance that unrestricted compile-time evaluation entails. Fortunately, the
-\pfs specification has a rigorous definition for these terms and clarifies the
-extent to which a \acrshort{p4} compiler must evaluate a program during
-translation.
+``evaluated at compile time'' or ``compile time -bound.'' A reader familiar with
+staged programming, dependent types, or C++ template instantiation may worry for
+the compiler performance that unrestricted compile-time evaluation entails.
+Fortunately, the \pfs specification has a rigorous definition for these terms
+and clarifies the extent to which a \acrshort{p4} compiler must evaluate a
+program during translation.
 
 \emph{Compile-time known values} are generally constants and stateless
 constructs that themselves only depend on other compile-time known values. Since
