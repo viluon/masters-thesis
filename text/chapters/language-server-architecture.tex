@@ -220,38 +220,35 @@ with a combination of non-\acrshort{lsp} \acrshort{api}s and by leveraging
 	properties in comments starting with \texttt{prop>}.}
 \end{figure}
 
-\subsection{The state of the art}
 
-Some of the best tooling in the \acrshort{lsp} ecosystem comes, somewhat
-unsurprisingly, from Microsoft.
+\begin{tcolorbox}[
+	title={\textbf{Language servers for popular technologies}},
+	colback=decoration!5!white,
+	colframe=decoration,
+	fonttitle=\bfseries,
+	arc=0pt,
+	outer arc=0pt,
+	boxrule=0.5pt,
+	top=2pt,
+	bottom=2pt,
+	left=2pt,
+	right=2pt,
+	enlarge top by=1.5\baselineskip,
+	enlarge bottom by=1.5\baselineskip
+]
 
-Projects which served as the de facto \acrshort{ide} integration for the given
-language matured somewhat quicker than software that already had ample
-competition.
+Many of the most widely used programming languages have corresponding language
+server implementations. The table below presents VS Code extensions and
+programming languages in order of their install count and popularity,
+respectively. The number of extension installations is tracked by the VS Code
+marketplace
+(\url{https://marketplace.visualstudio.com/search?target=VSCode&category=Programming%20Languages&sortBy=Installs}).
 
-\todo[inline]{the idea here is to compare "actual" language popularity
-with the popularity of a corresponding language server.
-We should see people preferring other tools for established technologies.}
+\vspace{1em}
 
-We have chosen to exclude some technologies from this comparison. JavaScript,
-TypeScript, CSS, and HTML support is built into VS Code and therefore does not
-show up in VS Code marketplace statistics for installed language extensions.
-SQL, while popular, has too many dialects to present a faithful picture through
-the lens of extension installations alone. These technologies were in turn
-filtered out from StackOverflow's list of most popular languages to highlight
-the differences in ranking.
-
-\todo[inline]{
-	add the source
-	% https://marketplace.visualstudio.com/search?target=VSCode&category=Programming%20Languages&sortBy=Installs
-}
-
-\begin{table}\centering
-\caption{Popularity of programming languages among VS Code users and
-StackOverflow's 2022 Developer survey\cite{stackoverflow-survey-2022}
-respondents.}
+\begin{center}
 \begin{tabular}{|r|c|c|}
-	Rank & VS Code extension & Most popular programming and scripting languages
+	Rank & VS Code extension & Popular languages, according to StackOverflow\cite{stackoverflow-survey-2022}
 	\tabularnewline \hline
 	1  & Python     & Python     \tabularnewline
 	2  & C/C++      & Java       \tabularnewline
@@ -264,10 +261,18 @@ respondents.}
 	9  & Ruby       & Dart       \tabularnewline
 	10 & Rust       & Ruby       \tabularnewline
 \end{tabular}
-\end{table}
+\end{center}
 
-\todo[inline]{the whole thing above is kinda suspicious.
-I'm not sure a comparison like that has a place in a language server thesis.}
+\vspace{1em}
+
+We have chosen to exclude some technologies from this comparison. JavaScript,
+TypeScript, CSS, and HTML support is built into VS Code and therefore does not
+show up in VS Code marketplace statistics for installed language extensions.
+SQL, while popular, has too many dialects to present a faithful picture through
+the lens of extension installations alone. These technologies were in turn
+filtered out from StackOverflow's list of most popular languages to highlight
+the differences in ranking.
+\end{tcolorbox}
 
 %----------------------------------------%
 \section{Lessons from the compiler world}
@@ -364,9 +369,9 @@ to integrate tightly with editors and development environments to provide
 features reliant on high-level information. Both compilers and language servers
 should be resilient to errors in the user input and continue processing as far
 as is practical, for example to report semantic errors even in the presence of
-syntactical issues. Just as with optimizers\todo{make sure we reference the
-previous subsubsection here correctly}, reimplementing a lot of complicated
-functionality is tiresome and unnecessary.
+syntactical issues. Just as with optimisers and other components useful across
+many frontends, reimplementing a lot of complicated functionality is tiresome
+and unnecessary.
 
 Unfortunately, the well-established pipeline approach to compiler construction
 is, despite its many innovations, difficult to adapt to the modern incremental
