@@ -628,31 +628,100 @@ parser main_parser(packet_in packet, out Headers h) {
 \todo[inline]{we should really reorganise this to use bigger headings, this way
 the individual constructs are lost in the text!}
 
-\subsubsection*{Control blocks}
+\subsection*{Control blocks}
+
+\begin{lstlisting}[
+	caption={~A \pfs control block.},
+	label=lst:p4-ctrl,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+control MyIngress(inout headers hdr,
+				inout metadata meta,
+				inout standard_metadata_t standard_metadata) {
+
+	action drop() {
+		mark_to_drop(standard_metadata);
+	}
+	action set_nhop(bit<48> nhop_dmac, bit<32> nhop_ipv4, bit<9> port) {
+		hdr.ethernet.dstAddr = nhop_dmac;
+		hdr.ipv4.dstAddr = nhop_ipv4;
+		standard_metadata.egress_spec = port;
+		hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+	}
+	table ecmp_nhop {
+		key = {
+			meta.ecmp_select: exact;
+		}
+		actions = {
+			drop;
+			set_nhop;
+		}
+		size = 2;
+	}
+	apply {
+		if (hdr.ipv4.isValid() && hdr.ipv4.ttl > 0) {
+			ecmp_nhop.apply();
+		} else {
+			drop();
+		}
+	}
+}
+\end{lstlisting}
 
 While parsers execute at the very frontier of the pipeline, the bulk of packet
 processing happens in the previously mentioned match-action units. \acrshort{p4}
 has another parametrized construct for expressing entire sequences of
-pattern-matching and rewriting steps: \texttt{control} blocks\todo{Add an
-example control block listing}.
+pattern-matching and rewriting steps: \texttt{control} blocks. An example of one
+is shown in Listing~\ref{lst:p4-ctrl}.
 
 A control block has a name and can take type and value parameters. The body of a
 control block begins with declarations of constants, variables, and
 instantiations. It follows with definitions of \emph{\texttt{action}s}.
 
-A \acrshort{p4} action\todo{example listing} is a piece of code that directly
-manipulates packet headers. At a first glance, actions should be immediately
-familiar to imperative programmers, since they resemble functions with no return
-value. Their bodies are each comprised of a series of statements. These are
-executed sequentially\footnote{At least from the perspective of the
-programmer.}. There are two important restrictions on action parameter lists.
+\begin{lstlisting}[
+	caption={~A \pfs action.},
+	label=lst:p4-action,
+	captionpos=t,
+	tabsize=4,
+	float,
+	abovecaptionskip=-\medskipamount,
+	belowcaptionskip=\medskipamount,
+	language=p4
+]
+action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
+	standard_metadata.egress_spec = port;
+	hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+	hdr.ethernet.dstAddr = dstAddr;
+	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+}
+\end{lstlisting}
+
+\subsubsection*{Actions}
+
+A \acrshort{p4} action, seen in Listing~\ref{lst:p4-action}, is a piece of code
+that directly manipulates packet headers. At a first glance, actions should be
+immediately familiar to imperative programmers, since they resemble functions
+with no return value. Their bodies are each comprised of a series of statements,
+which are executed sequentially\footnote{At least from the perspective of the
+programmer.}, with the restriction that actions cannot contain \texttt{table},
+\texttt{control}, or \texttt{parser} applications.
+
+Additionally, there are two important restrictions on action parameter lists:
 
 \begin{enumerate}
 	\item Parameters with no direction must all come at the end of the parameter
-	list. These directionless parameters indicate \emph{action
-	data}\todo{explain what that is}.
+	list. These directionless parameters indicate \emph{action data}, and can
+	either be provided by the program, just like \texttt{in} parameters, or by
+	the control plane software.
 	\item Action parameters cannot have \extern{} types.
 \end{enumerate}
+
+\subsubsection*{Tables}
 
 The second major \acrshort{p4} construct that appears exclusively within control
 blocks are \emph{tables}. Whereas an action specifies the operations performed
@@ -677,11 +746,11 @@ invoke.
 ]
 	Functional programmers will note that tables and actions together seem like
 	a low-level decomposition of pattern-matching from Haskell or Scala. This is
-	a good analogy, except that, whereas pattern-matching constructs in a
-	programming language are typically fixed at compilation time, \acrshort{p4}
-	tables are configurable at runtime by the control plane. Furthermore,
-	\acrshort{p4}'s pattern-matching operates at the bit level and offers
-	certain string-like facilities.
+	a fairly accurate analogy, except that, whereas pattern-matching constructs
+	in a programming language are typically fixed at compilation time,
+	\acrshort{p4} tables are configurable at runtime by the control plane.
+	Furthermore, \acrshort{p4}'s pattern-matching operates at the bit level and
+	offers certain string-like facilities.
 \end{tcolorbox}
 
 A \texttt{table} declaration is simultaneously an instantiation in the enclosing
@@ -702,8 +771,6 @@ runtime. Somewhat confusingly, some properties are implicitly \texttt{const},
 including the standard properties \texttt{key}, \texttt{actions}, and
 \texttt{size}. On these, the \texttt{const} keyword has no effect.
 
-\todo[inline]{some sort of heading for keys here}
-
 \begin{description}
 
 \item[\texttt{key}] The \texttt{key} table property specifies the scrutinee of
@@ -713,10 +780,9 @@ of optional annotations.
 
 The possible kinds of pattern-matching are \texttt{exact}, \texttt{ternary}, and
 \texttt{lpm}, all defined as part of the \texttt{match\_kind} construct in the
-core library\todo{do we discuss that prior to this point?}. A
-\texttt{match\_kind} behaves like an enumeration, it lists a number of
-mutually-exclusive variants. The semantics of the \texttt{match\_kind} variants
-is not given, it depends on the compiler and target architecture.
+core library. A \texttt{match\_kind} behaves like an enumeration, it lists a
+number of mutually-exclusive variants. The semantics of the \texttt{match\_kind}
+variants is not given, it depends on the compiler and target architecture.
 
 Key elements can be renamed with optional \texttt{@name} annotations to give
 them readable names in the control plane \acrshort{api}.
@@ -727,7 +793,7 @@ actions a table can invoke at runtime, separated by semicolons.
 The specification mandates that action names of actions in the \texttt{actions}
 list have to be distinct. That is, two actions of the same name cannot appear in
 the \texttt{actions} list, even if they come from different scopes and could be
-disambiguated with fully qualified paths in different contexts.
+disambiguated with fully qualified paths in other contexts.
 
 An overview of the valid and illegal usages of the \texttt{actions} table
 property is given in Listing~\ref{lst:p4-table-actions}. The examples highlight
@@ -809,8 +875,11 @@ program as long as it maintains the observable behaviour of all abstract
 machines involved. Unfortunately, the specification gives no formal treatment
 of these machines; they are described only in natural language and pseudocode.
 
-\todo[inline]{point out how the language tries to avoid undefined behaviour
-and makes arithmetic typing rules saner and safer with no undef. behaviour}
+The authors of the specification acknowledge that undefined behaviour has been
+the cause of many problems in conventional languages and deliberately try to
+avoid it. However, several constructs in the language are still underspecified
+and users may run into undefined behaviour, for example by accessing the field
+of an invalid header.
 
 
 \subsubsection*{Parser abstract machine}
@@ -877,14 +946,12 @@ to evaluate a function call expression.
 	-- \citetitle{p416:v123:spec} \cite{p416:v123:spec}
 \end{displayquote}
 
-The calling convention gives function calls\todo{I really need some sort of
-universal definition of function-like constructs in p4 that I stick to
-throughout the text} a semantics that ensures arguments cannot alias one another
-and impure functions cannot hold references to \acrshort{p4} code. This design
-is ultimately motivated by the need to control the side effects of \extern{}
-functions and methods, which are arbitrarily powerful. The copy in / copy out
-calling convention lets compilers reason about programs in the presence of
-\extern{}s.
+The calling convention gives calls\footnote{Of all function-like constructs.} a
+semantics that ensures arguments cannot alias one another and impure functions
+cannot hold references to \acrshort{p4} code. This design is ultimately
+motivated by the need to control the side effects of \extern{} functions and
+methods, which are arbitrarily powerful. The copy in / copy out calling
+convention lets compilers reason about programs in the presence of \extern{}s.
 
 \subsubsection*{Control blocks}
 
