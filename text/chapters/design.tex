@@ -679,3 +679,53 @@ grammar! {
 	// other non-terminals omitted
 }
 \end{lstlisting}
+
+%--------------------------------%
+\section{Query-based memoization}
+%--------------------------------%
+
+In section \ref{subsec:query-pipeline}, we have touched on the query-based
+approach in certain modern compilers, and some of its implications regarding
+scalability and parallelism for large incremental systems. Motivated by the
+query system in the Rust compiler and other incremental computation projects,
+some of the developers behind rust-analyzer and the Rust compiler proper have
+developed an incremental computation library called Salsa.
+
+Salsa lets the Rust programmer structure their program as a graph of
+interdependent query-like computations. All the user needs to do is set up data
+structures representing the inputs to the system and the intermediate products
+of its computation. Equipped with a set of library-defined macros and
+attributes, the user can then annotate functions in their program such that they
+are automatically memoized in a Salsa database.
+
+Salsa macros transform user-provided \texttt{struct}s into simple numerical
+identifiers. Each field of a \texttt{struct} gets a method which takes as a
+parameter a reference to the Salsa database. Calling this method extracts the
+object's associated data from the database, either by cloning or by returning a
+reference. This choice is, too, governed by a macro.
+
+Apart from Salsa-tracked intermediary values and inputs to the system, Salsa
+also supports automatic interning of (using the same type transformation as for
+other values) and side-channels for extra output. These side channels are
+conceptually monoids, a Salsa computation can push new values to the side
+channel. One can query the database for the entire log of values for a given
+invocation of a Salsa computation. Since computations are keyed by their inputs,
+the inputs have to be provided in this case as well.
+
+Salsa's monoids are known as ``accumulators.'' \acrshort{p4} Analyzer uses them
+for diagnostic output. The type of diagnostics is shared among the lexer, the
+preprocessor, and the parser. Each of these steps is driven by a Salsa
+computation, itself driven by a request to extract its data from the database
+(computing on-demand when necessary). The user can then extract the diagnostics
+for any of these steps.
+
+Salsa implements a pull model. Each tracked computation (a function annotated
+with a special macro) informs the system of the dependencies on other
+computations or inputs. The library keeps note of these dependency edges.
+Naturally, for dependency tracking to work correctly, Salsa computations must
+depend solely on their inputs. In general, they should avoid any side effects.
+
+All these functionalities are packaged up in the \texttt{Analyzer} type provided
+by the \texttt{analyzer-core} crate. This is the single point of contact between
+the analyzer core and the surrounding machinery for \acrshort{lsp} integration.
+The core knows nothing of the protocol used to communicate with clients.
