@@ -16,6 +16,15 @@ that the core analyzer is restarted if it encounters fatal errors.
 \section{Overview of implemented features}
 %-----------------------------------------%
 
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{resources/p4analyzer-autocompletion.png}
+	\caption{Autocompletion in Visual Studio Code. The blue items are suggested
+	from definitions recognised by the parser, while grey items are simply
+	identifiers in the preprocessed token stream.}
+	\label{fig:autocompletion}
+\end{figure}
+
 The lexer and preprocessor parts of the pipeline have been implemented quite
 thoroughly, with good error recovery and feature sets on par with the design
 presented in chapter~\ref{ch:design}. Lexer and preprocessor error channels
@@ -42,7 +51,7 @@ approach to incrementality with the Salsa library is not straightforward.
 Currently, the parser reparses preprocessed token streams from scratch. Parsing
 is still memoized as a Salsa query, so it happens on-demand and only after
 edits. Error labels, discussed in the parser design section, have not been
-implemented yet.
+implemented yet, and the parser still reports at most one error to the user.
 
 While we deem the \acrlong{ast} \acrshort{api} rather robust, owning to its
 success in the rust-analyzer project, its scope and usefulness hinges on a
@@ -53,13 +62,20 @@ it does not respect lexical scoping -- the grammar requires a larger overhaul,
 possibly supported by extensions to the supported \acrshort{peg} constructs, in
 order to meaningfully recognise scoped syntactic constructs.
 
-\begin{figure}[h]
+\begin{figure}[t]
 	\centering
-	\includegraphics[width=\textwidth]{resources/p4analyzer-autocompletion.png}
-	\caption{Autocompletion in Visual Studio Code. The blue items are suggested
-	from definitions recognised by the parser, while grey items are simply
-	identifiers in the preprocessed token stream.}
-	\label{fig:autocompletion}
+	\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-response.png}
+	\caption{The set of suggested identifiers depends on preprocessor
+	directives.}
+	\label{fig:preprocessor-response}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-errors.png}
+	\caption{The preprocessor continues to produce output even in the presence
+	of several errors.}
+	\label{fig:preprocessor-errors}
 \end{figure}
 
 %---------------------%
@@ -169,7 +185,11 @@ collaborate.
 \section{Future work}
 %--------------------%
 
-
-
-\todo[inline]{what's left to be done (parsing error recovery, covering more of
-the grammar, analysis)}
+As is clear from our results so far, there is much more work left to be done.
+After finalising the parser, future development efforts should aim to cover more
+of the \acrshort{api} surface of \acrshort{lsp} and provide useful features. In
+particular, we would like to develop lints\footnote{Soft warnings about code
+style and possible bugs.} and code navigation features built on the
+\acrshort{ast} abstraction framework. Rust makes usage of iterators ergonomic
+and efficient. We remain optimistic that the architecture of \acrshort{p4}
+Analyzer presented in this thesis will serve future extensions well.

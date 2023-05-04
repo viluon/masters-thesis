@@ -52,13 +52,6 @@ future, and what makes building interactive language tooling difficult.
 \section{The fruits of semantic support}
 %----------------------------------------%
 
-\todo[inline]{
-	should cover LSP ``language features'' section, current tooling, show
-	especially limitations of current tools with invalid input, guessing,
-	complex situations (rust-analyzer failing to infer types rustc knows about),
-	etc
-}
-
 The largest language servers conforming to \acrshort{lsp} offer a wide variety
 of features. The vast majority of the \acrshort{api} surface is optional,
 however. Upon establishing a connection, the client and server exchange
@@ -79,18 +72,15 @@ offer.
 
 \subsection{Code comprehension in \pdfacrshort{lsp}}
 
-\todo[inline]{this is lsp 3.17}
-
 \newcommand{\org}{\pdftooltip{(original)}{This request was present in the
 original LSP specification.}}
 
 Code comprehension functionality takes up the majority of \acrshort{lsp}'s
-\acrshort{api} surface and has been growing during the protocol's evolution. The
-central features, already present in the initial specification of the protocol,
-are Go to Definition, Find References, Document Highlight, Document Link, Hover,
-Code Lens, and Document Symbols\todo{examples for everything, including a
-screenshot from Neovim or something that's not VS Code. Don't forget to add
-Haskell evaluation code lenses.}.
+\acrshort{api} surface and has been growing during the protocol's evolution. At
+the time of writing, the latest stable \acrshort{lsp} release is version 3.17.
+The central features, already present in the initial specification of the
+protocol, are Go to Definition, Find References, Document Highlight, Document
+Link, Hover, Code Lens, and Document Symbols.
 
 \begin{figure}[h]
 	\includegraphics[width=1.00\textwidth]{resources/code_find_references.png}
@@ -355,11 +345,6 @@ perfectly match. For conventional processor targets, however, code generation
 necessitates at least instruction selection and register allocation, as well as
 maintaining some level of conformance to standard calling conventions.
 
-\subsubsection*{Born of necessity, sculpted for collaboration}
-
-\todo[inline]{Figure out where did the pipeline design come from, how GCC
-popularised it (I swear I heard that somewhere)}
-
 \subsubsection*{Where the pipeline falls short}
 
 In recent years, the feedback loop from writing code to executing it has gotten
@@ -416,12 +401,12 @@ builds heavily on incremental computation. A Roslyn compiler takes centre stage
 in a number of interactive and batch applications, maintaining a semantic model
 of the codebase. Higher-level tools then query and update this model via several
 \acrshort{api}s designed for static analysis, code refactoring, and other
-use-cases\cite{roslyn-apis}\todo{what are some concrete applications that build
-on these?}. The entire stack is optimised for interactive use. For example, the
-parsers utilise a combination of persistent ``green'' \acrlong{ast}s and
-transient ``red'' trees. The second, ephemeral type is built on-demand,
-optimised for querying, and discarded with edits\cite{roslyn-red-green-trees},
-while the ``green'' tree serves as the source of truth.
+use-cases\cite{roslyn-apis}. The entire stack is optimised for interactive use.
+For example, the parsers utilise a combination of persistent ``green''
+\acrlong{ast}s and transient ``red'' trees. The second, ephemeral type is built
+on-demand, optimised for querying, and discarded with
+edits\cite{roslyn-red-green-trees}, while the ``green'' tree serves as the
+source of truth.
 
 As more and more language tools interact with and rely on the compiler, compiler
 authors find themselves adapting the pipelined architecture to emit additional
@@ -465,14 +450,21 @@ introduced side-effects do not compromise correctness of the entire system.}.
 
 \subsubsection*{Queries in the wild}
 
-The Rust compiler was not originally built around a query system, but one has
-been retrofitted into it, and major parts of the pipeline between
-\texttt{rustc}'s high-level \acrshort{ir} and \acrshort{llvm} \acrshort{ir} are
-now implemented as incremental interdependent queries.\todo{reference}
+Although query-based approaches promise many benefits, their adoption in large
+compilers seems scarce. Large compilers and compiler frameworks, including
+\acrshort{llvm} and p4c, still build on the traditional pipeline model.
 
-The Roslyn project\todo{add information from the GitHub discussions thread, once
-available.}
+One exception is The Rust compiler. Although it was not originally built around
+a query system, one has been retrofitted into it. Major parts of the pipeline
+between \texttt{rustc}'s high-level \acrshort{ir} and \acrshort{llvm}
+\acrshort{ir} are now implemented as incremental interdependent
+queries\cite{rustc-queries}.
 
-\todo[inline]{include citations of the Sixten compiler, the rock library that
-supports Sixten, the talk by Anders, and \texttt{rustc} queries. Also, build
-systems a la carte, perhaps?}
+Smaller compiler projects have ventured further into the query-based realm of
+data dependencies and memoization. Examples can be seen in
+Sixten\footnote{\url{https://github.com/ollef/sixten}},
+Sixty\footnote{\url{https://github.com/ollef/sixty}}, and
+Eclair\footnote{\url{https://github.com/luc-tielen/eclair-lang}}. Olle
+Fredriksson developed a dedicated library for query-based build systems dubbed
+\texttt{rock}\footnote{\url{https://github.com/ollef/rock}} that all three
+projects build on.

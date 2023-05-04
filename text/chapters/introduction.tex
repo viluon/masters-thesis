@@ -145,104 +145,37 @@ same \emph{language server}. \acrshort{lsp}'s raison d'être is support of this
 model in Visual Studio Code.
 
 Coden\-vy, Microsoft, and Red Hat collaborated on standardizing the protocol to
-enable other tools to benefit from shared
-tooling\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
+enable other tools to benefit from a shared
+ecosystem\cite{sdtimesCodenvyMicrosoft,infoworldMicrosoftbackedLanguage}.
 
-% these comments make the section visible from the editor minimap
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-\section{Outline}
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
-%-------------------%
+%-----------------------------------------%
+\section*{Combining the two}
+%-----------------------------------------%
 
-\begin{enumerate}
-	\item (intro) P4 information
-	\item (intro) language servers, VS Code (screenshots, c++?)
-	\item design: overview of the architecture, interfaces with the editor, what
-		needs to be implemented
-	\item subsections about problems that needed solving, but most should go
-		into the design part!
-	\item results, what it can do, open-source repository, performance metrics
-		(aim for interactivity)
-	\item conclusion, next steps
-\end{enumerate}
+With these developments in mind, we would like to embark on the journey of
+supporting the \acrshort{p4} programmer in their development efforts. By
+building a language server, we aim to bridge the tooling gap and bring real-time
+feedback into the \acrshort{p4} programmer's development environment.
 
+%-----------------------------------------%
+\subsection*{A note about authorship}
+%-----------------------------------------%
 
+This work concerns the \acrshort{p4} Analyzer project, designed and developed
+primarily by Timothy Roberts and me\footnote{With recent help from Andrew Foot
+and Yusuf Adam.}, as a part of my internship at Intel. Tim was largely in charge
+of managing the integration into the Visual Studio Code editor, the server's
+compliance with the \acrlong{lsp}, and the networking aspects of the
+project\footnote{This involved unhealthy doses of both asynchronous code and
+Rust borrow checker errors, for which I can only offer sincere thanks and
+condolences. Tim somehow managed to stay optimistic and kind throughout. He
+rocks!}. I was responsible for the implementation of the analyzer core, which
+involved the lexing, preprocessing, and parsing of \acrshort{p4} code, designing
+the incremental computation architecture of the project, the interfaces the
+analyzer core exposes, and the abstractions used within.
 
-
-
-
-
-
-\todo[inline]{authorship: link to GitHub, detail which non-critical parts were
-implemented by a colleague}
-
-
-\begin{lstlisting}[
-	caption={~Useless code},
-	label=list:8-6,
-	captionpos=t,
-	float,
-	abovecaptionskip=-\medskipamount,
-	belowcaptionskip=\medskipamount,
-	language=C
-]
-	#include<stdio.h>
-	#include<iostream>
-	// A comment
-	int main(void)
-	{
-		printf("Hello World\n");
-		return 0;
-	}
-\end{lstlisting}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% alternative using package minted for source highlighting
-% package minted requires execution with `-shell-escape'
-% e.g., `xelatex -shell-escape ctufit-thesis.tex'
-% \begin{listing}
-% \caption{Zbytečný kód}\label{list:8-6}
-% \begin{minted}{C}
-%     #include<stdio.h>
-%     #include<iostream>
-%     // A comment
-%     int main(void)
-%     {
-%         printf("Hello World\n");
-%         return 0;
-%     }
-% \end{minted}
-% \end{listing}
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{table}\centering
-\caption[Příklad tabulky]{~Typesetting math}\label{tab:mathematics}
-\begin{tabular}{l|l|c|c}
-	Typ	& Prostředí	&
-		\LaTeX{}ovská zkratka	& \TeX{}ovská zkratka	\tabularnewline \hline
-	Text	& \verb|math|	&
-		\verb|\(...\)|	& \verb|$...$|	\tabularnewline \hline
-	Displayed	& \verb|displaymath|	&
-		\verb|\[...\]|	& \verb|$$...$$|	\tabularnewline
-\end{tabular}
-\end{table}
+To avoid problems of authorship, this thesis focuses on the analyzer core, which
+is an isolated module that I was largely in charge of. I can honestly claim
+that, at the time of writing, all the code in the \texttt{analyzer-core} crate
+is my own. On the other hand, \acrshort{p4} Analyzer is a large project with
+even larger ambitions. Tim and I were both involved in large design decisions.
