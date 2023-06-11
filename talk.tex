@@ -24,6 +24,10 @@
 
 % TikZ
 \usepackage{tikz}
+\usetikzlibrary{chains,arrows,automata,fit,positioning,calc}
+
+% todos
+\usepackage{todonotes}
 
 % figure support
 \usepackage{import}
@@ -50,9 +54,9 @@
 
 
 \title{P4 Language Server}
-\author{Bc. Ondřej Kvapil, supervised by Ing. Viktor Puš, Ph.D., MBA}
+\author{Bc. Ondřej Kvapil\\ supervised by Ing. Viktor Puš, Ph.D., MBA}
 \institute{Czech Technical University in Prague, Faculty of Information Technology}
-\date{14th June, 2023}
+\date{14th of June, 2023}
 
 
 \begin{document}
@@ -104,8 +108,7 @@
 
 \begin{frame}{Our solution}
 	\begin{itemize}
-		\item General-purpose \alert{incremental} packrat \alert{parsing}
-		library \pause
+		\item General-purpose \alert{incremental parsing} library \pause
 		\item A domain-specific language for grammar construction \pause
 		\item High-level macros for \alert{typed abstract syntax trees} \pause
 		\item All based on an extensible incremental architecture
@@ -113,11 +116,102 @@
 \end{frame}
 
 \begin{frame}{Our solution}
-	\begin{overprint}
-		\onslide<1>
+	\begin{itemize}
+		\item The architecture follows a \alert{query-based model} \pause
+		\item Major computation steps are \alert{incremental queries} \pause
+		\item A backing in-memory database memoizes query results and interns
+		certain data structures \pause
+		\item Lightweight abstract syntax trees \pause
+		\item Computation is \alert{demand-driven} \pause
+		\item Core functionality is independent of the protocol
+	\end{itemize}
+\end{frame}
 
-		\onslide<2>
+\begin{frame}{Our solution}
+	\begin{itemize}
+		\item<1-> Lexing phase
+			\begin{itemize}
+				\item<1-> Detects and reports lexical errors
+				\item<1-> Produces a stream of tokens for each processed file
+			\end{itemize}
+		\item<2-> Preprocessing phase
+			\begin{itemize}
+				\item<2-> Interprets preprocessor directives
+				\item<2-> Reports issues with missing files, malformed
+				directives, and circular inclusion
+				\item<2-> Attempts to recover from certain errors
+			\end{itemize}
+		\item<3-> Parsing phase
+			\begin{itemize}
+				\item<3-> Based on incremental packrat parsing
+				\item<3-> Produces an untyped parse tree for a PEG
+				\item<3-> Reports syntax errors
+			\end{itemize}
+	\end{itemize}
+
+	\centering
+	\begin{overprint}
+	\begin{tikzpicture}
+		[basic box/.style = {
+			draw,
+			shape = rectangle,
+			align = center,
+			minimum width=2cm,
+			minimum height=1.2cm,
+			rounded corners
+		},
+		to/.style = {
+			->,
+			>=stealth',
+			semithick
+		},
+		every matrix/.style={column sep=.8cm, ampersand replacement=\&},
+		font=\small
+		]
+		\onslide<1>{
+			\matrix{
+				\node[basic box, {CTUBlue}] (a) {Lexer};
+			\&  \node[basic box] (b) {Preprocessor};
+			\&  \node[basic box] (c) {Parser};
+			\&  \node[basic box] (d) {}; \\
+			};
+		}
+		\onslide<2>{
+			\matrix{
+				\node[basic box] (a) {Lexer};
+			\&  \node[basic box, {CTUBlue}] (b) {Preprocessor};
+			\&  \node[basic box] (c) {Parser};
+			\&  \node[basic box] (d) {}; \\
+			};
+		}
+		\onslide<3->{
+			\matrix{
+				\node[basic box] (a) {Lexer};
+			\&  \node[basic box] (b) {Preprocessor};
+			\&  \node[basic box, {CTUBlue}] (c) {Parser};
+			\&  \node[basic box] (d) {}; \\
+			};
+		}
+
+		\node[basic box, fill=white, above right=-3em and -5.1em of d ] (d2) {};
+		\node[basic box, fill=white, above right=-3em and -5.1em of d2] (d3) {Analyses};
+
+		\path
+		(a) edge[to] (b)
+		(b) edge[to] (c)
+		(c) edge[to] (d)
+		;
+	\end{tikzpicture}
 	\end{overprint}
+\end{frame}
+
+\begin{frame}{Parsing expression grammars}
+	\begin{itemize}
+		\item Closely related to context-free grammars \pause
+		\item Major difference: \alert{ordered choice} operator \pause
+		\item \todo[inline]{proper definition} \pause
+		\item Packrat parsers recognise PEG productions in linear time
+	\end{itemize}
 \end{frame}
 
 \begin{frame}{Results}
@@ -131,6 +225,22 @@
 	\end{itemize}
 \end{frame}
 
+\begin{frame}{Showcase}
+	\begin{overprint}
+	\onslide<1> {
+		\includegraphics[width=\textwidth]{resources/p4analyzer-autocompletion.png}
+	}
+
+	\onslide<2> {
+		\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-errors.png}
+	}
+
+	\onslide<3> {
+		\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-errors.png}
+	}
+	\end{overprint}
+\end{frame}
+
 \begin{frame}{Summary}
 	\begin{itemize}
 		\item LSP-compliant analyser for P4 \pause
@@ -142,14 +252,13 @@
 \begin{frame}{}
 	Thank you for listening.
 
-	\bibliographystyle{./styles/iso690.bst}
 	\begin{thebibliography}{1}
 		\bibitem{thesis}
 		Kvapil, Ondřej.
 		\textit{P4 Language Server}.
 		Master's thesis.
 		Czech Technical University in Prague,
-		Faculty of Information Technology, 2021.
+		Faculty of Information Technology, 2023.
 	\end{thebibliography}
 
 	\url{https://github.com/viluon/masters-thesis}
