@@ -54,6 +54,7 @@ jobs:
         latexmk -pdf -file-line-error ctufit-thesis.tex
         makeglossaries ctufit-thesis
         latexmk -pdf -file-line-error ctufit-thesis.tex
+        latexmk -pdf -file-line-error talk.tex
 
     - name: save cache
       uses: actions/cache/save@v3
@@ -118,3 +119,4 @@ jobs:
         files: |
           ctufit-thesis.pdf
           poly.pdf
+          talk.pdf

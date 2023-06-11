@@ -12,6 +12,8 @@ latexmk -pdf -file-line-error ctufit-thesis.tex;
 makeglossaries ctufit-thesis;
 latexmk -pdf -file-line-error ctufit-thesis.tex;
 
+latexmk -pdf -file-line-error talk.tex;
+
 /truepolyglot/truepolyglot pdfzip \
     --pdffile ctufit-thesis.pdf \
     --luafile .github/workflows/payload.lua \
