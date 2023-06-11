@@ -1,0 +1,195 @@
+% arara: xelatex
+% arara: makeglossaries
+% arara: xelatex
+% arara: xelatex
+
+% style inspired by
+% https://github.com/omelkonian/presentations/blob/2c0b2e1f592a8f90797e4997c3ab8785b114f595/%5B2019.08.20%5D%20BitML%20(SRC%20Presentation%20@%20ICFP)/bitml-presentation.tex
+
+\documentclass[aspectratio=169]{beamer}
+\usetheme{metropolis}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, bm}
+\usepackage{tcolorbox}
+\usepackage[makeroom]{cancel}
+\usepackage{mathpartir}
+\usepackage{xparse}
+
+% displayquote
+\usepackage{csquotes}
+
+% TikZ
+\usepackage{tikz}
+
+% figure support
+\usepackage{import}
+\usepackage{xifthen}
+\usepackage{pdfpages}
+\usepackage{transparent}
+\newcommand{\incfig}[1]{%
+	\def\svgwidth{\columnwidth}
+	\import{./figures/}{#1.pdf_tex}
+}
+
+% style for tcolorboxes
+\tcbset{plain/.style={colbacktitle=white,coltitle=black,colback=white}}
+\pdfsuppresswarningpagegroup=1
+
+% fonts
+\usepackage{relsize}
+\usepackage[tt=false]{libertine}
+\usepackage[libertine]{newtxmath}
+
+% colours
+\definecolor{CTUBlue}{HTML}{175BB0}
+\setbeamercolor{alerted text}{fg=CTUBlue}
+
+
+\title{P4 Language Server}
+\author{Bc. Ondřej Kvapil, supervised by Ing. Viktor Puš, Ph.D., MBA}
+\institute{Czech Technical University in Prague, Faculty of Information Technology}
+\date{14th June, 2023}
+
+
+\begin{document}
+
+\begin{center}
+	\maketitle
+\end{center}
+
+%\begin{frame}{Outline}
+%	\begin{itemize}
+%		\item Introduction
+%		\item Goals of the thesis
+%		\item Motivation behind the choice of topic
+%		\item Technical terminology and acronyms
+%		\item Current state of the solution
+%		\item Solution of the problem (expected outcome)
+%		\item Conclusion -- a summary of the important points, contributions
+%		\item Thanks \& discussion
+%	\end{itemize}
+%\end{frame}
+
+\begin{frame}{Programming Protocol-independent Packet Processors}
+	\begin{itemize}
+		\item<1-> P4 is a language for \alert{software-defined networking}
+		\item<2-> Specifies packet switching and routing operations
+		\item<3-> Configures programmable network processors
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Motivation}
+	\begin{itemize}
+		\item A fairly new language, first appeared in 2014 \pause
+		\item \alert{Lacks tooling} available for general-purpose programming
+			languages \pause
+		\item Network engineers experience slow development cycles \pause
+		\item Compilation process can take up to an hour \pause
+		\item Diagnostics are limited to compiler errors and warnings
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Goals}
+	\begin{itemize}
+		\item Equip network engineers with modern language tooling \pause
+		\item Shorten the feedback cycle \pause
+		\item Develop an open-source analyser for P4 \pause
+		\item Integrate with the Visual Studio Code editor
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Our solution}
+	\begin{itemize}
+		\item General-purpose \alert{incremental} packrat \alert{parsing}
+		library \pause
+		\item A domain-specific language for grammar construction \pause
+		\item High-level macros for \alert{typed abstract syntax trees} \pause
+		\item All based on an extensible incremental architecture
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Our solution}
+	\begin{overprint}
+		\onslide<1>
+
+		\onslide<2>
+	\end{overprint}
+\end{frame}
+
+\begin{frame}{Results}
+	\begin{itemize}
+		\item Proof-of-concept language server for P4 \pause
+		\item Integrated with Visual Studio Code \pause
+		\item Plugs into other LSP-capable editors \pause
+		\item Supports \alert{error-tolerant autocompletion} \pause
+		\item Provides diagnostics for preprocessor issues \pause
+		\item Features simple go-to definition functionality
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Summary}
+	\begin{itemize}
+		\item LSP-compliant analyser for P4 \pause
+		\item Incremental analysis pipeline \pause
+		\item Packrat parsing
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+	Thank you for listening.
+
+	\bibliographystyle{./styles/iso690.bst}
+	\begin{thebibliography}{1}
+		\bibitem{thesis}
+		Kvapil, Ondřej.
+		\textit{P4 Language Server}.
+		Master's thesis.
+		Czech Technical University in Prague,
+		Faculty of Information Technology, 2021.
+	\end{thebibliography}
+
+	\url{https://github.com/viluon/masters-thesis}
+\end{frame}
+
+\begin{frame}{Questions for the defense}
+	\alert{
+		\begin{overprint}
+			\onslide<1-2> Question 1
+			\onslide<3-4> Question 2
+			\onslide<5-6> Question 3
+		\end{overprint}
+	}
+
+	\begin{displayquote}
+		\begin{overprint}
+			\onslide<1-2>
+			Did you consider some alternative approaches for the incremental
+			parsing? Popular incremental parser is \texttt{treesitter} (although
+			I have not seen it used in any LSP I know).
+
+			\onslide<3-4>
+			I don't know how large the P4 programs tend to be, but did you look
+			at how much the incrementality actually helps?
+
+			\onslide<5-6>
+			Did you consider using \texttt{rowan} for the lossless syntax trees?
+		\end{overprint}
+	\end{displayquote}
+
+	\begin{overprint}
+		\onslide<2>
+		yada
+
+		\onslide<4>
+		tada
+
+		\onslide<6>
+		dada
+	\end{overprint}
+\end{frame}
+
+\end{document}
