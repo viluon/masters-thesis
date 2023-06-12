@@ -552,15 +552,39 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 		\begin{tikzpicture}
 			\begin{axis}[
 				xlabel=Number of definitions,
-				ylabel=Run time \lbrack{ms}\rbrack,
+				ylabel=Reparse time \lbrack{ms}\rbrack,
 				height=4cm,
 				width=\textwidth,
 				legend pos=north west,
 			]
-			\addplot[color=orange,mark=square] table [x=Definitions, y={From scratch}]{measurements.dat};
+			\addplot[
+				color=orange,
+				mark=square
+			] plot [
+				error bars/.cd,
+				y dir=both,
+				y explicit
+			] table [
+				x=Definitions,
+				y={From scratch},
+				y error plus=scratch-max,
+				y error minus=scratch-min
+			]{adjusted-measurements.dat};
 			\addlegendentry{From scratch}
 
-			\addplot[color=CTUBlue,mark=triangle] table [x=Definitions, y=Incremental]{measurements.dat};
+			\addplot[
+				color=CTUBlue,
+				mark=triangle
+			] plot [
+				error bars/.cd,
+				y dir=both,
+				y explicit
+			] table [
+				x=Definitions,
+				y=Incremental,
+				y error plus=incr-max,
+				y error minus=incr-min
+			]{adjusted-measurements.dat};
 			\addlegendentry{Incremental}
 			\end{axis}
 		\end{tikzpicture}
