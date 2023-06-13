@@ -214,7 +214,8 @@ SystemTimeError, Take, TakeWhile, tcb, tcflag, TcpListener, TcpStream, TempDir,
 TermInfo, TerminfoTerminal, termios, termios2, TestDesc, TestDescAndFn,
 TestEvent, TestFn, TestName, TestOpts, TestResult, Thread, threadattr,
 threadentry, ThreadId, tid, time, time64, timespec, TimeSpec, timestamp,
-timeval, timeval32, timezone, tm, tms, ToLowercase, ToUppercase, TraitObject,
+timeval, timeval32, timezone, tm, tms, Token, ToLowercase, ToUppercase,
+TraitObject,
 TryFromIntError, TryFromSliceError, TryIter, TryLockError, TryLockResult,
 TryRecvError, TrySendError, TypeId, U64x2, ucontext, ucred, Udivdi3, Udivmoddi4,
 Udivmodsi4, Udivmodti4, Udivsi3, Udivti3, UdpSocket, uid, UINT, uint16, uint32,
@@ -231,6 +232,7 @@ Wtf8CodePoints, xsw, xucred, Zip, zx}
 , morekeywords=[5]{assert!, assert_eq!, assert_ne!, cfg!, column!,
 compile_error!, concat!, concat_idents!, debug_assert!, debug_assert_eq!,
 debug_assert_ne!, env!, eprint!, eprintln!, file!, format!, format_args!,
+grammar!,
 include!, include_bytes!, include_str!, line!, module_path!, option_env!,
 panic!, print!, println!, select!, stringify!, thread_local!, try!,
 unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
@@ -297,11 +299,11 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 
 \begin{frame}{Motivation}
 	\begin{itemize}
-		\item A fairly new language, first appeared in 2014 \pause
+		\item A fairly new language, first appeared in 2014
 		\item \alert{Lacks tooling} available for general-purpose programming
 			languages \pause
-		\item Network engineers experience slow development cycles \pause
-		\item Compilation process can take up to an hour \pause
+		\item Network engineers experience long development cycles
+		\item Compilation process can take up to an hour
 		\item Diagnostics are limited to compiler errors and warnings
 	\end{itemize}
 \end{frame}
@@ -310,24 +312,71 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 	\begin{itemize}
 		\item Equip network engineers with modern language tooling \pause
 		\item Shorten the feedback cycle \pause
-		\item Develop an open-source analyser for P4 \pause
-		\item Integrate with the Visual Studio Code editor
+		\item Develop an open-source \alert{language server} for P4
 	\end{itemize}
 \end{frame}
 
 \begin{frame}{The Language Server Protocol}
+	\begin{overprint}
 	\begin{itemize}
-		\item Serves as a standard interface between editors and
-			language-specific tooling \pause
-		\item Includes high-level, semantic requests
+		\item<1-> Serves as a standard interface between editors and
+			language-specific tooling
+		\item<2-> Includes high-level, semantic requests
 			\begin{itemize}
 				\item Autocompletion, diagnostics, go to definition, finding
 					references, scope-aware renaming, document outlines, call
 					and type hierarchies, code lens, etc.
-			\end{itemize} \pause
-		\item Both clients and servers only need to support a subset \pause
-		\item Solved the problem of quadratic implementation work
+			\end{itemize}
+		\item<3-> Both clients and servers only need to support a subset
+		\item<4-> Solved the problem of quadratic implementation work
 	\end{itemize}
+	\end{overprint}
+
+	\begin{overprint}
+		\begin{center}
+		\begin{tikzpicture}
+			[basic box/.style = {
+				draw,
+				shape = rectangle,
+				align = center,
+				text width=1.2cm,
+				minimum height=1.2cm,
+				rounded corners
+			},
+			to/.style = {
+				<->,
+				>=stealth',
+				semithick
+			},
+			every matrix/.style={column sep=3cm, row sep=.1cm, ampersand replacement=\&},
+			font=\small
+			]
+			\matrix{
+				\node[basic box] (vs) {
+					\includegraphics[width=1cm]{resources/vscode-logo.pdf}
+				};
+			\&  \node[basic box] (py) {
+					\includegraphics[height=1cm]{resources/python-logo.pdf}
+				}; \\
+				\node[basic box] (st) {
+					\includegraphics[width=1cm]{resources/sublime-text-logo.pdf}
+				};
+			\&  \node[basic box] (hs) {
+					\includegraphics[width=1cm]{resources/haskell-logo.pdf}
+				}; \\
+				\node { Clients };
+			\&  \node { Servers }; \\
+			};
+
+			\path
+			(vs) edge[to] (py)
+			(vs) edge[to] (hs)
+			(st) edge[to] (py)
+			(st) edge[to] (hs);
+			;
+		\end{tikzpicture}
+		\end{center}
+	\end{overprint}
 \end{frame}
 
 \begin{frame}{Our solution}
@@ -351,7 +400,7 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 	\end{itemize}
 \end{frame}
 
-\begin{frame}{Our solution}
+\begin{frame}{The pipeline}
 	\begin{itemize}
 		\item<1-> Lexing phase
 			\begin{itemize}
@@ -453,6 +502,117 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 		\texttt{t} \in & \hspace{2pt} \text{tokens}
 	\end{align*}
 	\end{overprint}
+\end{frame}
+
+% TODO: Filip: Only keep pictures you intend to talk about and explain
+%              or that support what you are saying.
+
+\begin{frame}[fragile]{Grammar eDSL}
+	\begin{itemize}
+		\item Embedded domain-specific language for \alert{grammar construction}
+		\pause
+		\item Implemented as Rust macros \pause
+		\item Integrates with the type system \pause
+		\begin{lstlisting}[
+			basicstyle=\small,
+			language=Rust,
+			tabsize=4,
+		]
+grammar! {
+	// Kleene star, terminals, sequences, alternations
+	ws => whitespace rep;
+	whitespace => (Token::Whitespace);
+	p4program => ws, top_level_decls, ws;
+	top_level_decls =>
+		top_level_decls_rep | top_level_decls_end | nothing;
+}
+		\end{lstlisting}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Incremental packrat parsing}
+	\begin{minipage}[b]{0.7\textwidth}
+		\includegraphics[
+			width=\textwidth,
+			trim={11cm 19.6cm 1cm 2cm}, % left bottom right top
+			clip,
+		]{resources/incremental-packrat-parsing-p3.pdf}
+	\end{minipage}%
+	\begin{minipage}[b]{0.3\textwidth}
+		\begin{thebibliography}{1}
+			\bibitem{paper}
+			Dubroy, Patrick and Warth, Alessandro.
+			\alert{\emph{Incremental packrat parsing}}.
+			In: \emph{Proceedings of the 10th ACM SIGPLAN International
+			Conference on Software Language Engineering}.
+			\alert{2017}.
+		\end{thebibliography}
+	\end{minipage}
+\end{frame}
+
+\begin{frame}{Abstract syntax tree construction}
+	\begin{itemize}
+		\item A concrete syntax tree is unsuitable for analysis \pause
+		\item We build lightweight ASTs on-demand \pause
+		\item Smooth over arity issues by working with \alert{iterators}
+		% AST diagram
+		\vspace{0.5cm}
+		\begin{center}
+		\begin{tikzpicture}
+			[
+			font=\tiny,
+			every node/.style={
+				draw,
+				rectangle,
+				inner sep=0pt,
+				minimum size=1.5em,
+				rounded corners,
+			},
+			every edge/.style={
+				draw,
+				->,
+				>=stealth,
+				shorten >=1pt,
+			},
+			node distance=1cm and 0.5cm,
+			]
+			\node (root) {root};
+			\node[below left=of root] (child1) {child1};
+			\node[below right=of root] (child2) {child2};
+			\node[below left=of child1] (child3) {child3};
+			\node[below=of child1] (child4) {child4};
+			\node[below right=of child1] (child5) {child5};
+			\node[below=of child2] (child6) {child6};
+			\node[below right=of child2] (child7) {child7};
+
+			\path
+			(root)   edge (child1)
+			(root)   edge (child2)
+			(child1) edge (child3)
+			(child1) edge (child4)
+			(child1) edge (child5)
+			(child2) edge (child6)
+			(child2) edge (child7)
+			;
+		\end{tikzpicture}
+		\end{center}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Abstract syntax tree construction}
+	\begin{lstlisting}[
+		basicstyle=\small,
+		language=Rust,
+		tabsize=4,
+	]
+// find the identifier under cursor
+let ident = preorder(0, root.clone())
+	.map(|(_, n)| n)
+	.filter_map(Ident::cast)
+	.find(|ident|
+		ident.text_span(cumulative_sum).contains(&cursor)
+	);
+	\end{lstlisting}
 \end{frame}
 
 \begin{frame}{Results}
