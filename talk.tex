@@ -19,6 +19,9 @@
 \usepackage{mathpartir}
 \usepackage{xparse}
 
+% extra colours
+\usepackage{latexcolors}
+
 % for plotting data
 \usepackage{pgfplotstable}
 \usepackage{pgfplots}
@@ -28,7 +31,15 @@
 
 % TikZ
 \usepackage{tikz}
-\usetikzlibrary{chains,arrows,automata,fit,positioning,calc}
+\usetikzlibrary{
+	chains,
+	arrows,
+	automata,
+	fit,
+	positioning,
+	calc,
+	decorations.markings
+}
 
 % todos
 \usepackage{todonotes}
@@ -478,6 +489,15 @@ unimplemented!, unreachable!, vec!, write!, writeln!}  % prelude macros
 	\end{overprint}
 \end{frame}
 
+\begin{frame}{Error recovery in the preprocessor}
+	\vspace{0.5cm}
+	\begin{center}
+		\includegraphics[
+			height=0.8\textheight,
+		]{resources/p4analyzer-preprocessor-errors.png}
+	\end{center}
+\end{frame}
+
 \begin{frame}{Parsing expression grammars}
 	\begin{itemize}
 		\item Closely related to context-free grammars \pause
@@ -552,7 +572,8 @@ grammar! {
 
 \begin{frame}{Abstract syntax tree construction}
 	\begin{itemize}
-		\item A concrete syntax tree is unsuitable for analysis \pause
+		\item A concrete syntax tree is \alt<1>{\alert{unsuitable}}{unsuitable}
+			for analysis \pause
 		\item We build lightweight ASTs on-demand \pause
 		\item Smooth over arity issues by working with \alert{iterators}
 		% AST diagram
@@ -564,8 +585,9 @@ grammar! {
 			every node/.style={
 				draw,
 				rectangle,
-				inner sep=0pt,
+				inner sep=2pt,
 				minimum size=1.5em,
+				line width=0.7pt,
 				rounded corners,
 			},
 			every edge/.style={
@@ -574,83 +596,106 @@ grammar! {
 				>=stealth,
 				shorten >=1pt,
 			},
+			crossed/.style={
+				color=palered-violet,
+				decoration={
+					markings,
+					mark=at position .5 with {
+						\draw[-,thick] (2mm,-2mm) -- (-2mm,2mm) node[
+							inner sep=1pt,
+							pos=0.5,
+							auto
+						]{asdf};
+					}
+				},
+			},
 			node distance=1cm and 0.5cm,
 			]
 			\node (root) {root};
-			\node[below left=of root] (child1) {child1};
-			\node[below right=of root] (child2) {child2};
-			\node[below left=of child1] (child3) {child3};
-			\node[below=of child1] (child4) {child4};
-			\node[below right=of child1] (child5) {child5};
-			\node[below=of child2] (child6) {child6};
-			\node[below right=of child2] (child7) {child7};
+			\node[below left=of root   ] (child1) {Unary operation};
+			\node[below right=of root  , color=gray] (child2) {Semicolon};
+			\node[below left=1cm and 0.2cm of child1 , color=gray] (child3) {Whitespace};
+			\node[below=of child1      ] (child4) {\texttt{!}};
+			\node[below right=1cm and 0.2cm of child1, color=palered-violet] (child5) {Identifier};
+			\node[below=of child2      , color=gray] (child6) {Whitespace};
+			\node[below right=of child2, color=gray] (child7) {\texttt{;}};
 
 			\path
 			(root)   edge (child1)
-			(root)   edge (child2)
-			(child1) edge (child3)
+			(root)   edge[color=gray] (child2)
+			(child1) edge[color=gray] (child3)
 			(child1) edge (child4)
-			(child1) edge (child5)
-			(child2) edge (child6)
-			(child2) edge (child7)
+			(child1) edge[crossed] (child5)
+			(child2) edge[color=gray] (child6)
+			(child2) edge[color=gray] (child7)
 			;
+
+			\only<4> {
+			% draw arcing edge
+			\draw[->, >=stealth, color=CTUBlue]
+				(root) to[bend right=45] (child1);
+			\draw[->, >=stealth, color=CTUBlue]
+				(child1) to[bend right=30] (child4);
+			\draw[->, >=stealth, color=CTUBlue]
+				(child4) to[bend right=30] (child1);
+			\draw[->, >=stealth, color=CTUBlue]
+				(child1) to[bend right=45] (root);
+			}
 		\end{tikzpicture}
 		\end{center}
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Abstract syntax tree construction}
-	\begin{lstlisting}[
-		basicstyle=\small,
-		language=Rust,
-		tabsize=4,
-	]
-// find the identifier under cursor
-let ident = preorder(0, root.clone())
-	.map(|(_, n)| n)
-	.filter_map(Ident::cast)
-	.find(|ident|
-		ident.text_span(cumulative_sum).contains(&cursor)
-	);
-	\end{lstlisting}
+% \begin{frame}[fragile]{Abstract syntax tree construction}
+% 	\begin{lstlisting}[
+% 		basicstyle=\small,
+% 		language=Rust,
+% 		tabsize=4,
+% 	]
+% // find the identifier under cursor
+% let ident = preorder(0, root.clone())
+% 	.map(|(_, n)| n)
+% 	.filter_map(Ident::cast)
+% 	.find(|ident|
+% 		ident.text_span(cumulative_sum).contains(&cursor)
+% 	);
+% 	\end{lstlisting}
+% \end{frame}
+
+\begin{frame}{Go-to definition}
+	\vspace{0.5cm}
+	\begin{center}
+		\includegraphics[
+			width=0.9\textwidth,
+			trim={0 6cm 0 0}, % left bottom right top
+			clip,
+		]{resources/p4analyzer-goto-definition.png}
+	\end{center}
+\end{frame}
+
+\begin{frame}{Autocompletion}
+	\vspace{0.2cm}
+	\begin{center}
+		\includegraphics[
+			width=0.9\textwidth,
+		]{resources/p4analyzer-autocompletion.png}
+	\end{center}
 \end{frame}
 
 \begin{frame}{Results}
 	\begin{itemize}
-		\item Proof-of-concept language server for P4 \pause
+		\item LSP-compliant \alert{language server} for P4 \pause
 		\item Integrated with Visual Studio Code \pause
-		\item Plugs into other LSP-capable editors \pause
-		\item Supports \alert{error-tolerant autocompletion} \pause
-		\item Provides diagnostics for preprocessor issues \pause
-		\item Features simple go-to definition functionality
+		\item Domain-specific language for building PEGs \pause
+		\item Standalone \alert{incremental parser library} \pause
+		\item Incremental architecture with lightweight syntax abstraction
+			\pause
 	\end{itemize}
-\end{frame}
 
-\begin{frame}{Showcase}
-	\begin{overprint}
-	\only<1> {
-		\includegraphics[width=\textwidth]{resources/p4analyzer-autocompletion.png}
-	}
-	\only<2> {
-		\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-response.png}
-	}
-	\only<3> {
-		\includegraphics[width=\textwidth]{resources/p4analyzer-preprocessor-errors.png}
-	}
-	\end{overprint}
-\end{frame}
-
-\begin{frame}{Summary}
-	\begin{itemize}
-		\item LSP-compliant analyser for P4 \pause
-		\item Incremental analysis pipeline \pause
-		\item Packrat parsing
-	\end{itemize}
+	Thank you for listening.
 \end{frame}
 
 \begin{frame}{}
-	Thank you for listening.
-
 	\begin{thebibliography}{1}
 		\bibitem{thesis}
 		Kvapil, Ondřej.
